@@ -6,11 +6,11 @@ Tools for bayesian data analysis
 1. Open up your terminal and clone the repository locally:  
    Clone by using a password protected SSH key (preferred)
    ```
-   $ git clone git@github.com:cryomib/watson.git
+   $ git clone git@github.com:cryomib/baynes.git
    ```
    or Clone with HTTPS by using by the web URL
    ```
-   $ git clone https://github.com/cryomib/watson.git
+   $ git clone https://github.com/cryomib/baynes.git
    ```
    
    fixme
