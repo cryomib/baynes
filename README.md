@@ -22,7 +22,7 @@ Tools for bayesian data analysis
     ├── src                            # Project source code
     ├── scripts                        # Directory for scripts and executables 
     ├── test                           # Directory used to collect test code   
-    ├── requirements_base_python3.txt  # Requirements file specifing the lists of packages to install
+    ├── requirements.txt  # Requirements file specifing the lists of packages to install
     ├── setup.py                       # 
     ├── .gitignore                     # Specifies intentionally untracked files to ignore
     └── README.md                      # README file
