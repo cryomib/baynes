@@ -22,7 +22,7 @@ Tools for bayesian data analysis
    $ virtualenv -p `which python3.X` ~/baynesenv
    ```   
    Run the following command to activate the baynes virtual environment 
-    ```
+   ```
    $ source baynesenv/bin/activate
    ```  
    (optional) Check the version of python being used in the virtual environment  
