@@ -39,10 +39,13 @@ Tools for bayesian data analysis
    ```  
 
 4. Install CmdStan and Stan
-   CmdStan should automatically install Stan also, just follow the guide in https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html
+   ```  
+   (baynesenv) $ install_cmdstan
+   ```  
+   Automatically installation as reported in Note 1. It will install CmdStan in $HOME/.cmdstan. If you want a custom CmdStan installation, follow https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html
 
    Note 1: you can use the build-in function of CmdStan to install Stan (see install_cmdstan function https://mc-stan.org/cmdstanpy/installation.html) 
-   
+
    Note 2: do not follow the conda installation procedure.
 
 ### Project top-level directory layout
