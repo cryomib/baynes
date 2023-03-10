@@ -13,8 +13,36 @@ Tools for bayesian data analysis
    $ git clone https://github.com/cryomib/baynes.git
    ```
    
-   fixme
- 
+2.  Install virtualenv using python >= 3.8
+   ```
+   $ sudo pip install virtualenv
+   ```
+   Create the baynes virtual environment based on python3.X (X>=8) 
+   ```
+   $ virtualenv -p `which python3.X` ~/baynesenv
+   ```   
+   Run the following command to activate the baynes virtual environment 
+    ```
+   $ source baynesenv/bin/activate
+   ```  
+   (optional) Check the version of python being used in the virtual environment  
+   ```
+   (baynesenv) $ python -V
+   ```
+   Python 3.X.x
+   if the returned value is the chosen verson, the version is ok
+
+3. Install the packages and the dependencies of baynes inside virtualenv
+   Inside the baynes folder, just type
+   ```  
+   (baynesenv) $ pip install .
+   ```  
+
+4. Install CmdStan and Stan
+   CmdStan should automatically install Stan also, just follow the guide in https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html
+   Note 1: you can use the build-in function of CmdStan to install Stan (see install_cmdstan function https://mc-stan.org/cmdstanpy/installation.html) 
+   Note 2: do not follow the conda installation procedure.
+
 ### Project top-level directory layout
     
     baynes
