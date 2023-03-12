@@ -1,5 +1,6 @@
 # baynes
 Tools for bayesian data analysis
+![versions](https://img.shields.io/pypi/pyversions/pybadges.svg)
 
 ### Installation
 1. Open the terminal and clone the repository locally:
@@ -42,7 +43,7 @@ Tools for bayesian data analysis
    ```
    (baynesenv) $ install_cmdstan
    ```
-   By default, this will install CmdStan and Stan's core utilities in '$HOME/.cmdstan'. For more informations, see https://mc-stan.org/cmdstanpy/installation.html
+   By default, this will install CmdStan and Stan's core utilities in `$HOME/.cmdstan`. For more informations, see https://mc-stan.org/cmdstanpy/installation.html
 
    If you want a custom CmdStan installation, follow https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html
 
