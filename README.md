@@ -1,6 +1,5 @@
 # baynes
 Tools for bayesian data analysis
-![versions](https://img.shields.io/pypi/pyversions/pybadges.svg)
 
 ### Installation
 1. Open the terminal and clone the repository locally:
