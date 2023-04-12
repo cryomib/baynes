@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from collections import OrderedDict
+
 
 class MatplotlibHelper:
     def __init__(self, col_wrap=3, fig_scale=6, save=False, output_dir='figures/', output_format='.jpeg', style='ggplot'):
@@ -65,16 +67,37 @@ class MatplotlibHelper:
             if title in self.figures:
                 self.figures[title].savefig(f"{self.output_dir}{title}{self.format}", bbox_inches='tight')
 
-    def add_vertical_lines(self, x_coords, label=None, **kwargs):
-        current_figure_axes = self.get_current_figure().axes
-        if len(current_figure_axes) != len(x_coords):
-            print('Lines will not be printed on all axes')
-        for i, ax in enumerate(current_figure_axes):
-            ax.axvline(x_coords[i], label=label, **kwargs)
-        if label is not None:
-            current_figure_axes[-1].legend()
+    def add_lines(self, x_coords=[], y_coords=[], label=None, bbox_to_anchor=(1.15, 0.6), **kwargs):
+        fig = self.get_current_figure()
+        axes = fig.axes
+        for i, x in enumerate(x_coords):
+            axes[i].axvline(x, label=label, **kwargs)
+        for i, y in enumerate(y_coords):
+            axes[i].axhline(y, label=label, **kwargs)
 
-    
+        if label is not None:
+            self.update_legend(fig=fig, last_label=label, bbox_to_anchor=bbox_to_anchor, facecolor='white', edgecolor='white')
+        return fig
+
+    def update_legend(self, fig=None, last_label=None, **lgd_kws):
+        if fig is None:
+            fig = self.get_current_figure()
+        handles, labels = [], []
+        for ax in fig.axes:
+            h, l = ax.get_legend_handles_labels()
+            handles.extend(h)
+            labels.extend(l)
+        for lgd in fig.legends:
+            h = lgd.legendHandles
+            l = [t.get_text() for t in lgd.get_texts()]
+            handles.extend(h)
+            labels.extend(l)
+            lgd.remove()
+        by_label = OrderedDict(zip(labels, handles))
+        if last_label is not None:
+            by_label.move_to_end(last_label)
+        fig.legend(by_label.values(), by_label.keys(), **lgd_kws)
+  
     def resize(self, x, y):
         fig = self.get_current_figure()
         fig.set_size_inches(x, y)
@@ -213,7 +236,7 @@ class FitPlotter(MatplotlibHelper):
             draws = np.array([np.histogram(dr, bins=bins)[0] for dr in draws])
 
         ax.plot(events, color=color, linewidth=1.5, label=data_key, linestyle='--')
-        ax1.plot(np.zeros(len(events)), color=color, linewidth=1.5, linestyle='--')
+        ax1.plot(np.zeros(len(events)), color=color, linewidth=1.5, linestyle='--', label=data_key)
 
         if lines:
             for i in range(min(80, len(draws))):
@@ -226,9 +249,8 @@ class FitPlotter(MatplotlibHelper):
             lo, hi = np.percentile(draws, percs, axis=0)
             ax.fill_between(np.arange(len(events)), lo, hi,
                             color=color, alpha=0.4, label=rep_key)
-            ax1.plot(np.zeros(len(events)), color=color, linewidth=1.5)
             ax1.fill_between(np.arange(len(events)), (lo-events)/np.sqrt(events), (hi-events)/np.sqrt(events),
-                        color=color, alpha=0.4)  
+                        color=color, alpha=0.4, label=rep_key)  
         if n_bins is not None:
             ax.set_ylabel('counts')    
             ax1.set_ylabel('residuals')
@@ -247,14 +269,17 @@ class FitPlotter(MatplotlibHelper):
         return grid
 
     @multi_fit_plot
-    def dis_plot(self, df, parameters, legend = True, facet_kws = {"sharey": False, "sharex": False}, kind = "kde", hue = 'fit', col='variable', **kwargs):
+    def dis_plot(self, df, parameters, legend=True, facet_kws = {"sharey": False, "sharex": False, 'legend_out':True}, kind = "kde", hue = 'fit', col='variable', **kwargs):
         dmelt = df.melt(id_vars=['fit'])
         displot = sns.displot(data=dmelt, x='value', legend=legend, facet_kws=facet_kws,
-                              kind=kind, hue=hue, col=col, col_wrap=min(len(parameters), self.col_wrap),height=self.fig_scale/len(parameters), **kwargs)
-        displot.set_titles("")
+                              kind=kind, hue=hue, col=col, col_wrap=min(len(parameters), self.col_wrap), height=self.fig_scale/1.5, **kwargs)
         for i, ax in enumerate(displot.axes.flatten()):
             ax.set_xlabel(parameters[i])
-        displot.add_legend(bbox_to_anchor=(1.2, 0.6))
+        data=displot.legend.get_texts()[1]
+        print(data)
+        #displot.legend.remove()
+        #displot.add_legend(data, bbox_to_anchor=(1.2, 0.6))
+        displot.set_titles("")
         return displot
     
     @multi_fit_plot
