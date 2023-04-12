@@ -67,7 +67,7 @@ class MatplotlibHelper:
             if title in self.figures:
                 self.figures[title].savefig(f"{self.output_dir}{title}{self.format}", bbox_inches='tight')
 
-    def add_lines(self, x_coords=[], y_coords=[], label=None, bbox_to_anchor=(1.15, 0.6), **kwargs):
+    def add_lines(self, x_coords=[], y_coords=[], label=None, bbox_to_anchor=(1.05, 0.6), facecolor='white', edgecolor='white', **kwargs):
         fig = self.get_current_figure()
         axes = fig.axes
         for i, x in enumerate(x_coords):
@@ -76,10 +76,10 @@ class MatplotlibHelper:
             axes[i].axhline(y, label=label, **kwargs)
 
         if label is not None:
-            self.update_legend(fig=fig, last_label=label, bbox_to_anchor=bbox_to_anchor, facecolor='white', edgecolor='white')
+            self.update_legend(fig=fig, last_labels=[label], bbox_to_anchor=bbox_to_anchor, facecolor=facecolor, edgecolor=edgecolor)
         return fig
 
-    def update_legend(self, fig=None, last_label=None, **lgd_kws):
+    def update_legend(self, fig=None, last_labels=None, **lgd_kws):
         if fig is None:
             fig = self.get_current_figure()
         handles, labels = [], []
@@ -94,8 +94,9 @@ class MatplotlibHelper:
             labels.extend(l)
             lgd.remove()
         by_label = OrderedDict(zip(labels, handles))
-        if last_label is not None:
-            by_label.move_to_end(last_label)
+        if last_labels is not None:
+            for l in last_labels:
+                by_label.move_to_end(l)
         fig.legend(by_label.values(), by_label.keys(), **lgd_kws)
   
     def resize(self, x, y):
@@ -105,7 +106,7 @@ class MatplotlibHelper:
 
 
 class FitPlotter(MatplotlibHelper):
-
+    
     def __init__(self, fit=None, fit_title=None, **kwargs):
         self.fits = {}
         if fit is not None:
@@ -134,14 +135,14 @@ class FitPlotter(MatplotlibHelper):
             title = self.current_fit
         return self.fits[title]
 
-    def draws_df(self, fit_names=None, parameters=None, inc_warmup=False):
-        if fit_names is None:
-            fit_names = [self.current_fit]
-        elif fit_names == 'all':
-            fit_names = list(self.fits.keys())
+    def draws_df(self, fit_titles=None, parameters=None, inc_warmup=False):
+        if fit_titles is None:
+            fit_titles = [self.current_fit]
+        elif fit_titles == 'all':
+            fit_titles = list(self.fits.keys())
 
         draws_df = pd.DataFrame([])
-        for fit_n in fit_names:
+        for fit_n in fit_titles:
             draws_temp = self.fits[fit_n].draws_pd(
                 inc_warmup=inc_warmup)[parameters]
             draws_temp['fit'] = fit_n
@@ -186,10 +187,13 @@ class FitPlotter(MatplotlibHelper):
 
     @staticmethod
     def multi_fit_plot(func):
-        def wrapper(self, parameters='all_stan', fit_names=None, inc_warmup=False, **kwargs):
+        def wrapper(self, parameters='all_stan', fit_titles=None, inc_warmup=False, df=None, **kwargs):
             parameters = self.validate_parameters(parameters)
-            draws_df = self.draws_df(
-                fit_names, parameters, inc_warmup=inc_warmup)
+            if df is None:
+                draws_df = self.draws_df(
+                fit_titles, parameters, inc_warmup=inc_warmup)
+            else:
+                draws_df = df
             plot = func(self, draws_df, parameters, **kwargs)
             self.new_figure(func.__name__, plot.figure)
             plt.show()
@@ -275,17 +279,14 @@ class FitPlotter(MatplotlibHelper):
                               kind=kind, hue=hue, col=col, col_wrap=min(len(parameters), self.col_wrap), height=self.fig_scale/1.5, **kwargs)
         for i, ax in enumerate(displot.axes.flatten()):
             ax.set_xlabel(parameters[i])
-        data=displot.legend.get_texts()[1]
-        print(data)
-        #displot.legend.remove()
-        #displot.add_legend(data, bbox_to_anchor=(1.2, 0.6))
         displot.set_titles("")
         return displot
     
     @multi_fit_plot
-    def cat_plot(self, df, parameters, legend = True, sharex = False, kind = 'box', col = 'variable', **kwargs):
-        dmelt = df.melt(id_vars=['fit'])
-        catplot = sns.catplot(data=dmelt, x='value', y='fit', legend = legend, sharex = sharex, kind = kind, col = col, col_wrap=min(len(parameters), self.col_wrap), **kwargs)
+    def cat_plot(self, df, parameters, id_vars=['fit'], legend = True, sharex = False, kind = 'box', hue=None, col = 'variable', **kwargs):
+        dmelt = df.melt(id_vars=id_vars)
+        catplot = sns.catplot(data=dmelt, x='value', y='fit', legend = legend, sharex = sharex, 
+                              kind = kind, hue=hue, col = col, col_wrap=min(len(parameters), self.col_wrap), height=self.fig_scale/1.5, **kwargs)
         catplot.set_titles("")
         for i, ax in enumerate(catplot.axes.flatten()):
             ax.set_xlabel(parameters[i])
