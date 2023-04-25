@@ -254,15 +254,15 @@ class FitPlotter(MatplotlibHelper):
             ax.fill_between(np.arange(len(events)), lo, hi,
                             color=color, alpha=0.4, label=rep_key)
             ax1.fill_between(np.arange(len(events)), (lo-events)/np.sqrt(events), (hi-events)/np.sqrt(events),
-                        color=color, alpha=0.4, label=rep_key)  
+                        color=color, alpha=0.4, label=rep_key)
         if n_bins is not None:
             ax.set_ylabel('counts')    
-            ax1.set_ylabel('residuals')
             ax1.set_xlabel(data_key)         
         else:
             ax.set_ylabel(data_key)    
-            ax1.set_ylabel('residuals')
             ax1.set_xlabel('bin')  
+        ax1.set_ylabel('residuals')
+
         return figure
 
     @multi_fit_plot
