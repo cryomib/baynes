@@ -139,7 +139,7 @@ class FitPlotter(MatplotlibHelper):
         if fit_titles is None:
             fit_titles = [self.current_fit]
         elif fit_titles == 'all':
-            fit_titles = list(self.fits.keys())
+            fit_titles = list(self.fits.keys())[::-1]
 
         draws_df = pd.DataFrame([])
         for fit_n in fit_titles:
@@ -165,12 +165,14 @@ class FitPlotter(MatplotlibHelper):
             n_cols = min(n_plots, self.col_wrap)
             n_rows = int(np.ceil(n_plots/n_cols))
             fig = self.new_figure(func.__name__)
-            fig.set_size_inches(self.fig_scale*n_cols, self.fig_scale*n_rows*0.7)
             if n_plots == 1:
                 subfigs = np.array([fig])
+                fig.set_size_inches(self.fig_scale*1.2, self.fig_scale)
             else:
                 subfigs = fig.subfigures(n_rows, n_cols)
                 subfigs = subfigs.flatten()
+                fig.set_size_inches(self.fig_scale*n_cols*2/3, self.fig_scale*n_rows*1.4/3)
+                fig.set_layout_engine('compressed')
             for i, par in enumerate(parameters):
                 subfig = func(self, par, subfigs[i], **kwargs)
             handles, labels = subfig.axes[0].get_legend_handles_labels()
@@ -195,8 +197,7 @@ class FitPlotter(MatplotlibHelper):
             else:
                 draws_df = df
             plot = func(self, draws_df, parameters, **kwargs)
-            self.new_figure(func.__name__, plot.figure)
-            plt.show()
+            f = self.new_figure(func.__name__, plot.figure)
             if self.save:
                 plot.figure.savefig(
                     f"{self.output_dir}{self.current_title}{self.format}", bbox_inches='tight')
@@ -206,7 +207,7 @@ class FitPlotter(MatplotlibHelper):
     @single_fit_plot
     def convergence_plot(self, par, figure, fit_name=None, alpha=0.9, linewidth=0.3, initial_steps=50, **kwargs):
         ax = figure.subplots(1, 2, width_ratios=[
-                             2.5, 1], sharey=True, gridspec_kw={'wspace': 0.1})
+                             2.5, 1], sharey=True, gridspec_kw={'wspace': 0.01})
         fit = self.get_fit(fit_name)
         n_chains = fit.chains
         draws_df = fit.draws_pd(inc_warmup=True)[[par]]
@@ -231,7 +232,7 @@ class FitPlotter(MatplotlibHelper):
         return figure
 
     @single_fit_plot
-    def predictive_check(self, rep_key, figure, data=None, data_key=None, fit_name=None, percs=[5, 95], color='green', lines = False, n_bins=None):            
+    def predictive_check(self, rep_key, figure, data=None, data_key=None, fit_name=None, percs=[5, 95], color='green', lines = False, n_bins=None):    
         ax, ax1 = figure.subplots(2, 1, height_ratios=[2.5, 1], sharex=True)
         draws = self.get_fit(fit_name).draws_pd(rep_key, inc_warmup=False).to_numpy()
         events = np.array(data[data_key])
@@ -266,10 +267,13 @@ class FitPlotter(MatplotlibHelper):
         return figure
 
     @multi_fit_plot
-    def pair_grid(self, df, parameters, hue='fit', height=1.5, corner=True, s=0.5, **kwargs):
+    def pair_grid(self, df, parameters, legend=False, hue='fit', height=1.5, corner=True, s=0.5, **kwargs):
         grid = sns.PairGrid(df, hue=hue, height=height, corner=corner)
         grid.map_offdiag(sns.scatterplot, s=s, **kwargs)
         grid.map_diag(sns.histplot, bins=20)
+        if legend:
+            grid.add_legend(label_order= grid.hue_names, title='',bbox_to_anchor=(0.9, 0.6))
+
         return grid
 
     @multi_fit_plot
@@ -312,7 +316,7 @@ class FitPlotter(MatplotlibHelper):
         dmelt = df.melt(id_vars=['fit'])        
         kdegrid = sns.FacetGrid(dmelt, col='variable', hue=hue, col_wrap=min(len(parameters), self.col_wrap), sharey=False, sharex=False, height=self.fig_scale/2)
         kdegrid.map(informative_kde, 'value', **kwargs)
-        kdegrid.add_legend(label_order= kdegrid.hue_names + ['median'], title='',bbox_to_anchor=(1.05, 0.5)) 
+        kdegrid.add_legend(label_order= kdegrid.hue_names + ['median'], title='',bbox_to_anchor=(1.05, 0.5))
         kdegrid.set_titles("")
         for i, ax in enumerate(kdegrid.axes.flatten()):
             ax.set_xlabel(parameters[i])
