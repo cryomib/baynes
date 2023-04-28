@@ -266,9 +266,9 @@ class FitPlotter(MatplotlibHelper):
         return figure
 
     @multi_fit_plot
-    def pair_grid(self, df, parameters, hue='fit', height=1.5, corner=True, **kwargs):
+    def pair_grid(self, df, parameters, hue='fit', height=1.5, corner=True, s=0.5, **kwargs):
         grid = sns.PairGrid(df, hue=hue, height=height, corner=corner)
-        grid.map_offdiag(sns.scatterplot, **kwargs)
+        grid.map_offdiag(sns.scatterplot, s=s, **kwargs)
         grid.map_diag(sns.histplot, bins=20)
         return grid
 
@@ -310,7 +310,7 @@ class FitPlotter(MatplotlibHelper):
             return ax
 
         dmelt = df.melt(id_vars=['fit'])        
-        kdegrid = sns.FacetGrid(dmelt, col='variable', hue=hue, col_wrap=min(len(parameters), self.col_wrap), sharey=False, sharex=False, height=self.fig_scale/1.5)
+        kdegrid = sns.FacetGrid(dmelt, col='variable', hue=hue, col_wrap=min(len(parameters), self.col_wrap), sharey=False, sharex=False, height=self.fig_scale/2)
         kdegrid.map(informative_kde, 'value', **kwargs)
         kdegrid.add_legend(label_order= kdegrid.hue_names + ['median'], title='',bbox_to_anchor=(1.05, 0.5)) 
         kdegrid.set_titles("")
