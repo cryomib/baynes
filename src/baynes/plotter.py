@@ -287,9 +287,9 @@ class FitPlotter(MatplotlibHelper):
         return displot
     
     @multi_fit_plot
-    def cat_plot(self, df, parameters, id_vars=['fit'], legend = True, sharex = False, kind = 'box', hue=None, col = 'variable', **kwargs):
+    def cat_plot(self, df, parameters, id_vars=['fit'], x='value', y='fit', legend = True, sharex = False, kind = 'box', hue=None, col = 'variable', **kwargs):
         dmelt = df.melt(id_vars=id_vars)
-        catplot = sns.catplot(data=dmelt, x='value', y='fit', legend = legend, sharex = sharex, 
+        catplot = sns.catplot(data=dmelt, legend = legend, sharex = sharex, x=x, y=y,
                               kind = kind, hue=hue, col = col, col_wrap=min(len(parameters), self.col_wrap), height=self.fig_scale/1.5, **kwargs)
         catplot.set_titles("")
         for i, ax in enumerate(catplot.axes.flatten()):

@@ -1,4 +1,6 @@
 from scipy import signal
+from scipy import stats
+from scipy import integrate
 from numpy import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,12 +29,12 @@ class SpectraSampler:
         if FWHM is not None:
             self.FWHM = FWHM
             self.sigma = FWHM/(2*np.sqrt(2*np.log(2)))
-            self.n_window = int(np.ceil(self.sigma)/self.dE)*10 + 1
+            self.n_window = int(np.ceil(self.sigma)/self.dE)*12 + 1
 
         half_window = int(np.floor((self.n_window - 1)/2))
-        self.conv_window = signal.windows.gaussian(self.n_window, self.sigma/self.dE)
-        
 
+        self.conv_window = signal.windows.gaussian(self.n_window, self.sigma/self.dE)
+        self.conv_window = self.conv_window/sum(self.conv_window)
         self.bin_edges = np.arange(0, self._E_max + self.dE*(half_window+1), self.dE)
         self.ROI_idx = [np.argmin(np.abs(np.array(self.bin_edges)-self.ROI[0])),
                         np.argmin(np.abs(np.array(self.bin_edges)-self.ROI[1]))]
@@ -83,20 +85,24 @@ class SpectraSampler:
         binned_pdf = np.zeros(self.ROI_idx[1]-self.ROI_idx[0])
         for key, partial_sp in self.spectrum.items():
             partial_pdf = partial_sp[self.ext_ROI_idx[0]:self.ext_ROI_idx[1]]
-            weights_in_ROI.append(sum(partial_pdf))
             if self.FWHM != 0:
                 partial_pdf = signal.convolve(partial_pdf, self.conv_window, 'valid')
+            weights_in_ROI.append(sum(partial_pdf))
             binned_pdf = binned_pdf + partial_pdf
-            
         weights_in_ROI = np.array(weights_in_ROI)
         self.weights_in_ROI = weights_in_ROI / sum(weights_in_ROI) 
         self.binned_pdf = binned_pdf/sum(binned_pdf) 
     
-    def sample(self):
-        samples = []
-        for i in range(self.n_spectra):
-            samples.append(random.multinomial(self.n_events, self.binned_pdf))
-        return np.array(samples)
+    def sample(self, poissonian=True):
+        pdf = self.binned_pdf
+        if poissonian:
+            samples=np.random.poisson(pdf*self.n_events, size=(self.n_spectra, len(pdf)))
+        else:
+            samples = []
+            for i in range(self.n_spectra):
+                samples.append(random.multinomial(self.n_events, pdf))
+            samples =  np.array(samples)
+        return samples
     
     def plot_pdf(self, ax=None, scale='log', label=None):
         if ax is None:
