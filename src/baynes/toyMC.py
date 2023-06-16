@@ -36,39 +36,45 @@ class SpectraSampler:
         self.conv_window = signal.windows.gaussian(self.n_window, self.sigma/self.dE)
         self.conv_window = self.conv_window/sum(self.conv_window)
         self.bin_edges = np.arange(0, self._E_max + self.dE*(half_window+1), self.dE)
+        self.n_bins = len(self.bin_edges) - 1
+
         self.ROI_idx = [np.argmin(np.abs(np.array(self.bin_edges)-self.ROI[0])),
                         np.argmin(np.abs(np.array(self.bin_edges)-self.ROI[1]))]
         self.ext_ROI_idx = [self.ROI_idx[0] - half_window, 
                             self.ROI_idx[1] + half_window]
+
+        self.ROI_bin_edges = self.bin_edges[self.ROI_idx[0]:self.ROI_idx[1]+1]
         self.ROI_bin_centers = (self.bin_edges[self.ROI_idx[0]+1:self.ROI_idx[1]+1] 
                                 + self.bin_edges[self.ROI_idx[0]:self.ROI_idx[1]])/2
 
     def update_spectrum(self, funcs_args_rates=None):
         if funcs_args_rates is None:
             funcs_args_rates = self.funcs_args_rates
+        else:
+            self.funcs_args_rates = funcs_args_rates
         self.spectrum = {}
-        funcs, args, rates = zip(*funcs_args_rates)
-        self.funcs_args_rates = funcs_args_rates
         edges = self.bin_edges
-        n_bins = len(edges)-1
+        n_bins = self.n_bins
         spectrum = np.zeros(n_bins)
-
-        for idx, func in enumerate(funcs):
+        sum_rates = 0
+        for func_name, items in self.funcs_args_rates.items():
+            func, args, rate = items
             if self.integrate is True:
                 partial_sp = [integrate.quad(
-                    func, edges[i], edges[i+1], args=tuple(args[idx]))[0] for i in range(n_bins)]
+                    func, edges[i], edges[i+1], args=tuple(args))[0] for i in range(n_bins)]
                 partial_sp = np.array(partial_sp)
             else:         
-                partial_sp = func(edges, *args[idx]) * self.dE
+                partial_sp = func(edges, *args)
                 partial_sp = (partial_sp[:-1]+partial_sp[1:])/2
 
-            partial_sp = (1-self.f_pu) * rates[idx] * partial_sp / (self.dE * sum(partial_sp)) * 3600 * 24
-            self.spectrum[func.__name__] = partial_sp
+            partial_sp = (1-self.f_pu) * rate * partial_sp / sum(partial_sp) * 3600 * 24 / self.dE
+            self.spectrum[func_name] = partial_sp
             spectrum = spectrum +  partial_sp
+            sum_rates += rate
 
         if self.f_pu != 0:
             pileup_sp = signal.convolve(spectrum, spectrum, 'full')
-            pileup_sp = self.f_pu * pileup_sp  * sum(rates) / (self.dE * sum(pileup_sp)) * 3600 * 24
+            pileup_sp = self.f_pu * pileup_sp  * sum_rates / sum(pileup_sp) * 3600 * 24 / self.dE
             self.spectrum['pileup'] = pileup_sp
             spectrum = spectrum + pileup_sp[:n_bins]
 
@@ -91,8 +97,9 @@ class SpectraSampler:
             binned_pdf = binned_pdf + partial_pdf
         weights_in_ROI = np.array(weights_in_ROI)
         self.weights_in_ROI = weights_in_ROI / sum(weights_in_ROI) 
-        self.binned_pdf = binned_pdf/sum(binned_pdf) 
-    
+        self.pdf_norm = sum(binned_pdf)
+        self.binned_pdf = binned_pdf / sum(binned_pdf)
+
     def sample(self, poissonian=True):
         pdf = self.binned_pdf
         if poissonian:
@@ -104,12 +111,24 @@ class SpectraSampler:
             samples =  np.array(samples)
         return samples
     
+    def plot_events(self, events, ax=None, scale='log'):
+        if ax is None:
+            fig, ax = plt.subplots()
+        ax.plot(self.ROI_bin_centers, self.binned_pdf * self.n_events, label='spectrum')
+        ax.plot(self.ROI_bin_centers, events, label='events')
+        ax.set_yscale(scale)
+        ax.set_xlabel('E [eV]')
+        ax.set_ylabel('Counts')
+        ax.legend()
+        return ax
+
     def plot_pdf(self, ax=None, scale='log', label=None):
         if ax is None:
             fig, ax = plt.subplots()
         ax.plot(self.ROI_bin_centers, self.binned_pdf, label=label)
         ax.set_yscale(scale)
         ax.set_xlabel('E [eV]')
+        ax.set_ylabel('Prob(E)')
         return ax     
 
     def plot_spectrum(self, ax=None, scale='log'):
@@ -132,6 +151,6 @@ class SpectraSampler:
         print('estimated time: ', n_days, ' days')
 
     def set_measure_time(self, n_days, n_det = 32):
-        ev_in_ROI = sum(self.full_spectrum[self.ROI_idx[0]:self.ROI_idx[1]]) * n_det * self.dE
+        ev_in_ROI = self.pdf_norm * n_det * self.dE
         self.n_events = int(np.floor(n_days * ev_in_ROI))
         print('Number of events in ROI: ', self.n_events)
