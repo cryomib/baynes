@@ -20,4 +20,20 @@ functions {
     return y / pi();
   }
   
+  // first order 163Ho spectrum
+  vector Ho_first_order(vector E, real m_nu, real Q_H, vector E_H, vector gamma_H, vector i_H){
+    int N = num_elements(E);
+    vector[N] Ho_spectrum = rep_vector(0, N);
+    for (i in 1 : N){
+      if (Q_H - m_nu - E[i] < 0){
+        Ho_spectrum[i] = 0;
+      }
+      else{
+        Ho_spectrum[i] = dot_product(i_H, gamma_H./((E[i] - E_H) ^ 2 + (gamma_H/2) ^ 2));
+        Ho_spectrum[i] = Ho_spectrum[i] * (Q_H - E[i]) * sqrt((Q_H - E[i])^2-m_nu^2)/(2*pi());
+      }
+
+    }
+    return Ho_spectrum;
+  }
 }
