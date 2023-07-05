@@ -1,3 +1,4 @@
+import glob
 import io
 import json
 import os
@@ -9,6 +10,77 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pygraphviz as pgv
 from cmdstanpy import CmdStanModel
+
+
+def set_models_path(path: str) -> None:
+    """
+    Validate, then set the Stan models directory path.
+    """
+    if not os.path.isdir(path):
+        raise ValueError(f"No CmdStan directory, path {path} does not exist.")
+    os.environ["STAN_MODELS_DIR"] = path
+    print(
+        " Path to models directory set, add \n",
+        f'export STAN_MODELS_DIR="{path}" \n',
+        "to .bashrc to make the change permanent.",
+    )
+
+
+def get_models_path() -> str:
+    """
+    Validate, then return the Stan models directory path.
+    """
+    models_dir = ""
+    if "STAN_MODELS_DIR" in os.environ and len(os.environ["STAN_MODELS_DIR"]) > 0:
+        models_dir = os.environ["STAN_MODELS_DIR"]
+    else:
+        raise ValueError(
+            'Path to the models directory not set, use "baynes.model_utils.set_model_path(path)"'
+        )
+
+    if not os.path.isdir(models_dir):
+        raise ValueError(f"No CmdStan directory, path {models_dir} does not exist.")
+    return os.path.normpath(models_dir)
+
+
+def get_stan_file(stan_file: str) -> str or None:
+    """
+    Return a .stan file from the models directory path.
+    """
+    models_path = get_models_path()
+    files = glob.glob(get_models_path() + "/**/" + stan_file, recursive=True)
+    if len(files) == 0:
+        raise ValueError(
+            f"File {stan_file} not found in models directory {models_path}."
+        )
+    elif len(files) > 1:
+        print(f"Found multiple files in directory {models_path}.")
+        return select_from_list(files)
+    else:
+        print("Found .stan file ", files[0])
+        return files[0]
+
+
+def select_from_list(options):
+    """
+    User selection from list of options
+    """
+    print(f"Select an option number [1-{str(len(options))}]:")
+    for idx, option in enumerate(options):
+        print(str(idx + 1) + ") " + str(option))
+    inputValid = False
+    while not inputValid:
+        inputRaw = input()
+        inputNo = int(inputRaw) - 1
+        if inputNo > -1 and inputNo < len(options):
+            selected = options[inputNo]
+            print(f"Selected: {str(selected)}")
+            inputValid = True
+            break
+        else:
+            print("Please select a valid option number")
+
+    return selected
 
 
 def inits_from_priors(model, prior_fit, n_chains, dir="inits"):
@@ -113,16 +185,23 @@ def parse_sampling_statements(statement_list):
     return samplings
 
 
-def get_model_graph(model, plot=True):
+def get_model_graph(model, plot=True, extended=False):
     if isinstance(model, str):
         model = CmdStanModel(stan_file=model, compile=False)
 
     code = get_code_blocks(model.code(), block_names=["model"])["model"]
     samplings = parse_sampling_statements(get_sampling_statements(code))
     info = model.src_info()
-    all_pars = list(info['parameters'].keys())+list(info['transformed parameters'].keys())
-    all_data = list(info['inputs'].keys())+list(info['transformed parameters'].keys())
     all_dist = [dist.split("_")[0] for dist in info["distributions"]]
+    all_pars = list(info["parameters"].keys()) + list(
+        info["transformed parameters"].keys()
+    )
+    if extended:
+        all_data = list(info["inputs"].keys()) + list(
+            info["transformed parameters"].keys()
+        )
+        all_pars += all_data
+
     G = pgv.AGraph(directed=True)
 
     for statement in samplings:
@@ -133,8 +212,11 @@ def get_model_graph(model, plot=True):
             else:
                 var, dist = statement[0:2]
             for i in range(2, L):
-                if statement[i] in all_data + all_pars:
-                    G.add_edge(statement[i], var, label=dist)
+                if statement[i] in all_pars:
+                    if extended:
+                        G.add_edge(statement[i], var, label=dist)
+                    else:
+                        G.add_edge(statement[i], var)
 
     if plot:
         img_bytes = G.draw(format="png", prog="dot")
