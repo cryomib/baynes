@@ -29,7 +29,7 @@ class SpectraSampler:
         if FWHM is not None:
             self.FWHM = FWHM
             self.sigma = FWHM/(2*np.sqrt(2*np.log(2)))
-            self.n_window = int(np.ceil(self.sigma)/self.dE)*12 + 1
+            self.n_window = int(np.ceil(self.sigma/self.dE*6))*2 + 1
 
         half_window = int(np.floor((self.n_window - 1)/2))
 
@@ -91,9 +91,9 @@ class SpectraSampler:
         binned_pdf = np.zeros(self.ROI_idx[1]-self.ROI_idx[0])
         for key, partial_sp in self.spectrum.items():
             partial_pdf = partial_sp[self.ext_ROI_idx[0]:self.ext_ROI_idx[1]]
+            weights_in_ROI.append(sum(partial_sp[self.ROI_idx[0]: self.ROI_idx[1]]))
             if self.FWHM != 0:
                 partial_pdf = signal.convolve(partial_pdf, self.conv_window, 'valid')
-            weights_in_ROI.append(sum(partial_pdf))
             binned_pdf = binned_pdf + partial_pdf
         weights_in_ROI = np.array(weights_in_ROI)
         self.weights_in_ROI = weights_in_ROI / sum(weights_in_ROI) 

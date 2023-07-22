@@ -1,16 +1,28 @@
 import os
+import pickle
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 
-
 class MatplotlibHelper:
     def __init__(self, col_wrap=3, fig_scale=6, save=False, output_dir='figures/', output_format='.jpeg', style='ggplot'):
+        """
+        Helper class for creating and managing matplotlib figures.
+
+        Args:
+            col_wrap (int): Number of columns to wrap the figures.
+            fig_scale (int): Scale factor for the figure size.
+            save (bool): Whether to save the figures.
+            output_dir (str): Directory path to save the figures.
+            output_format (str): Output format for the figures.
+            style (str): Matplotlib style to use.
+        """
         plt.style.use(style)
         self.style = style
         self.figures = {}
+        self._previuos_figures = {}
         self.current_title = None
         self.col_wrap = col_wrap
         self.fig_scale = fig_scale
@@ -19,16 +31,37 @@ class MatplotlibHelper:
         self.format = output_format
 
     def set_savefig(self, save):
+        """
+        Enable or disable saving figures.
+
+        Args:
+            save (bool): Whether to save the figures.
+        """
         if save:
             self.set_output_dir(self.output_dir)
         self.save = save
 
     def set_output_dir(self, output_dir):
+        """
+        Set the output directory for saving figures.
+
+        Args:
+            output_dir (str): Directory path to save the figures.
+        """
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
         self.output_dir = output_dir
 
     def get_figure_title(self, partial_title=None):
+        """
+        Get a list of figure titles.
+
+        Args:
+            partial_title (str): Partial title to filter the figure titles.
+
+        Returns:
+            list: List of figure titles.
+        """
         if partial_title == 'all':
             titles = list(self.figures)
         elif partial_title is None:
@@ -38,13 +71,38 @@ class MatplotlibHelper:
         return titles
 
     def get_current_figure(self):
+        """
+        Get the current figure.
+
+        Returns:
+            matplotlib.figure.Figure: Current figure object.
+        """
         return self.figures[self.current_title]
 
     def generate_new_title(self, plot_type):
+        """
+        Generate a new title for a figure based on the plot type.
+
+        Args:
+            plot_type (str): Type of plot.
+
+        Returns:
+            str: New figure title.
+        """
         n_figures_with_type = sum(plot_type in title for title in list(self.figures))
         return plot_type + '_' + str(n_figures_with_type)
 
     def new_figure(self, plot_type, figure=None):
+        """
+        Create a new figure.
+
+        Args:
+            plot_type (str): Type of plot.
+            figure (matplotlib.figure.Figure, optional): Existing figure object.
+
+        Returns:
+            matplotlib.figure.Figure: New or existing figure object.
+        """
         if figure is None:
             figure = plt.figure()
         figure_title = self.generate_new_title(plot_type)
@@ -53,6 +111,13 @@ class MatplotlibHelper:
         return figure
 
     def clear_figures(self, titles=None, clear_files=True):
+        """
+        Clear the specified figures and optionally delete their saved files.
+
+        Args:
+            titles (str or list, optional): Titles of the figures to clear.
+            clear_files (bool, optional): Whether to delete the saved figure files.
+        """
         titles = self.get_figure_title(partial_title=titles)
         for title in titles:
             if title in self.figures:
@@ -62,12 +127,71 @@ class MatplotlibHelper:
                     os.remove(figure_path)
 
     def save_figures(self, titles=None):
+        """
+        Save the specified figures.
+
+        Args:
+            titles (str or list, optional): Titles of the figures to save.
+        """
         titles = self.get_figure_title(partial_title=titles)
         for title in titles:
             if title in self.figures:
                 self.figures[title].savefig(f"{self.output_dir}{title}{self.format}", bbox_inches='tight')
 
+    def copy(self, item):
+        """
+        Copy full object with pickle
+
+        Returns:
+            copied object
+        """
+        return pickle.loads(pickle.dumps(item, -1))
+
+    @staticmethod
+    def modify_figure(func):
+        """
+        Allow the current figure state to be recovered before applying a function.
+        """
+        def wrapper(self, *args, **kwargs):
+            plt.close()
+            title = self.current_title
+            self._previuos_figures[title] = self.copy(self.get_current_figure())
+            return func(self, *args, **kwargs)
+        return wrapper
+
+    def undo_last(self):
+        """
+        Undoes the currect figure state before the last applied modify_figure function.
+
+        Returns:
+            matplotlib.figure.Figure: Recovered figure object.
+        """
+        previous = self._previuos_figures
+        title = self.current_title
+        if title in previous.keys():
+            self.figures[title] = previous[title]
+            deleted = previous.pop(title, None)
+            return self.get_current_figure()
+        else:
+            print(f'No stored changes for {title}')
+
+    @modify_figure
     def add_lines(self, x_coords=[], y_coords=[], label=None, bbox_to_anchor=(1.05, 0.6), facecolor='white', edgecolor='white', **kwargs):
+        """
+        Add vertical and horizontal lines to the current figure.
+
+        Args:
+            x_coords (list): List of x-coordinates for vertical lines.
+            y_coords (list): List of y-coordinates for horizontal lines.
+            label (str): Label for the lines.
+            bbox_to_anchor (tuple): Bounding box anchor position for the legend.
+            facecolor (str): Face color for the legend.
+            edgecolor (str): Edge color for the legend.
+            **kwargs: Additional keyword arguments to pass to the axvline and axhline functions.
+
+        Returns:
+            matplotlib.figure.Figure: Updated figure object.
+        """
         fig = self.get_current_figure()
         axes = fig.axes
         for i, x in enumerate(x_coords):
@@ -76,12 +200,20 @@ class MatplotlibHelper:
             axes[i].axhline(y, label=label, **kwargs)
 
         if label is not None:
-            self.update_legend(fig=fig, last_labels=[label], bbox_to_anchor=bbox_to_anchor, facecolor=facecolor, edgecolor=edgecolor)
+            self.update_legend(last_labels=[label], bbox_to_anchor=bbox_to_anchor, facecolor=facecolor, edgecolor=edgecolor)
         return fig
 
-    def update_legend(self, fig=None, last_labels=None, **lgd_kws):
-        if fig is None:
-            fig = self.get_current_figure()
+    @modify_figure
+    def update_legend(self, last_labels=None, **lgd_kws):
+        """
+        Update the legend of the current figure.
+
+        Args:
+            fig (matplotlib.figure.Figure, optional): Figure object to update the legend.
+            last_labels (list, optional): Labels to move to the end of the legend.
+            **lgd_kws: Additional keyword arguments for matplotlib.figure.Figure.legend().
+        """
+        fig = self.get_current_figure()
         handles, labels = [], []
         for ax in fig.axes:
             h, l = ax.get_legend_handles_labels()
@@ -98,11 +230,24 @@ class MatplotlibHelper:
             for l in last_labels:
                 by_label.move_to_end(l)
         fig.legend(by_label.values(), by_label.keys(), **lgd_kws)
-  
+        return fig
+
+    @modify_figure
     def resize(self, x, y):
+        """
+        Resize the current figure.
+
+        Args:
+            x (float): Width of the figure.
+            y (float): Height of the figure.
+
+        Returns:
+            matplotlib.figure.Figure: Resized figure object.
+        """
         fig = self.get_current_figure()
         fig.set_size_inches(x, y)
         return fig
+
 
 
 class FitPlotter(MatplotlibHelper):
@@ -354,4 +499,3 @@ class FitPlotter(MatplotlibHelper):
         grid.despine(bottom=True, left=True)
         plt.style.use(self.style)
         return grid
-
