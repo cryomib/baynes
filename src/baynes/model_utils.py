@@ -1,12 +1,16 @@
 import glob
-import io
 import json
 import os
-import re
-
-import matplotlib.pyplot as plt
+import baynes
 import numpy as np
 from cmdstanpy import CmdStanModel
+
+def _get_config_file():
+    baynes_path = os.path.dirname(baynes.__file__)
+    config_file = os.path.join(baynes_path, 'config.json')
+    if not os.path.isfile(config_file):
+        raise ValueError("No config.json file found for Baynes")
+    return config_file
 
 
 def set_models_path(path: str) -> None:
@@ -15,29 +19,47 @@ def set_models_path(path: str) -> None:
     """
     if not os.path.isdir(path):
         raise ValueError(f"No CmdStan directory, path {path} does not exist.")
-    os.environ["STAN_MODELS_DIR"] = path
-    print(
-        " Path to models directory set, add \n",
-        f'export STAN_MODELS_DIR="{path}" \n',
-        "to .bashrc to make the change permanent.",
-    )
 
+    cfile = _get_config_file()
+    with open(cfile, 'r') as f:
+        config = json.load(f)
+
+    config['STAN_MODELS_DIR'] = path
+
+    with open(cfile, 'w') as f:
+        json.dump(config, f, indent=4)
 
 def get_models_path() -> str:
     """
     Validate, then return the Stan models directory path.
     """
+    with open(_get_config_file(), 'r') as f:
+        config = json.load(f)
     models_dir = ""
-    if "STAN_MODELS_DIR" in os.environ and len(os.environ["STAN_MODELS_DIR"]) > 0:
-        models_dir = os.environ["STAN_MODELS_DIR"]
+    if "STAN_MODELS_DIR" in config.keys() and len(config["STAN_MODELS_DIR"]) > 0:
+        models_dir = config["STAN_MODELS_DIR"]
     else:
         raise ValueError(
             'Path to the models directory not set, use "baynes.model_utils.set_model_path(path)"'
         )
-
     if not os.path.isdir(models_dir):
         raise ValueError(f"No CmdStan directory, path {models_dir} does not exist.")
     return os.path.normpath(models_dir)
+
+def set_compiler_kwargs(compiler_kwargs: dict) -> None:
+    cfile = _get_config_file()
+    with open(cfile, 'r') as f:
+        config = json.load(f)
+
+    config['STAN_COMPILER_KWARGS'] = compiler_kwargs
+
+    with open(cfile, 'w') as f:
+        json.dump(config, f, indent=4)
+
+def get_compiler_kwargs() -> dict:
+    with open(_get_config_file(), 'r') as f:
+        config = json.load(f)
+    return config['STAN_COMPILER_KWARGS']
 
 
 def get_stan_file(stan_file: str) -> str or None:
@@ -100,4 +122,3 @@ def inits_from_priors(model, prior_fit, n_chains, dir="inits"):
         with open(file_name, "w", encoding="utf-8") as f:
             json.dump(inits, f, ensure_ascii=False, indent=4)
     return init_files
-

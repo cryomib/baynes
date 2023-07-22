@@ -21,6 +21,8 @@ setup( # Finally, pass this all along to distutils to do the heavy lifting.
     package_dir      = {'': 'src'},
 #   packages         = find_packages(where='src', exclude=('tests', 'notebooks', 'scripts', 'data')),
     packages         = find_packages(where='src'),
+    package_data={'': ['config.json']},
+    include_package_data=True,
     python_requires  = '>=3.8', 
     zip_safe         = False,
 )
