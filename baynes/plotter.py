@@ -16,7 +16,7 @@ class MatplotlibHelper:
             fig_scale (int): Scale factor for the figure size.
             save (bool): Whether to save the figures.
             output_dir (str): Directory path to save the figures.
-            output_format (str): Output format for the figures.
+            output_format (str): Output format for the saved figures.
             style (str): Matplotlib style to use.
         """
         plt.style.use(style)
@@ -206,7 +206,7 @@ class MatplotlibHelper:
     @modify_figure
     def update_legend(self, last_labels=None, **lgd_kws):
         """
-        Update the legend of the current figure.
+        Update the legend of the current figure. Allows to change the position of labels and combine legends from different subplots
 
         Args:
             fig (matplotlib.figure.Figure, optional): Figure object to update the legend.
@@ -249,6 +249,13 @@ class MatplotlibHelper:
         return fig
 
     def plot(self, *args, **kwargs):
+        """
+        Simple wrapper for plt.plot
+
+        Args:
+            *args: arguments for plt.plot()
+            **kwargs: keyword arguments for plt.plot()
+        """
         fig = self.new_figure("plot")
         ax = fig.subplots()
         ax.plot(*args, **kwargs)

@@ -166,3 +166,6 @@ inits/
 
 # Trunk configuration
 .trunk/
+
+test/
+notebooks/

@@ -4,7 +4,8 @@ Tools for bayesian data analysis
 
 ### Installation
 1. Open the terminal and clone the repository locally:
-   Clone using a password protected SSH key (preferred)
+
+   use a password protected SSH key (preferred)
    ```
    $ git clone git@github.com:cryomib/baynes.git
    ```
@@ -13,16 +14,11 @@ Tools for bayesian data analysis
    $ git clone https://github.com/cryomib/baynes.git
    ```
 
-2. Install virtualenv using `python >= 3.8`
+2. Install virtualenv using `python >= 3.8`. Create the baynes virtual environment based on `python3.X (X>=8)` and activate it.
+
    ```
    $ sudo pip install virtualenv
-   ```
-   Create the baynes virtual environment based on python3.X (X>=8)
-   ```
    $ virtualenv -p `which python3.X` ~/baynesenv
-   ```
-   Run the following command to activate the virtual environment
-   ```
    $ source baynesenv/bin/activate
    ```
    (optional) Check the version of python being used in the virtual environment
@@ -30,14 +26,16 @@ Tools for bayesian data analysis
    (baynesenv) $ python -V
    ```
 
-3. Install the required Python packages and dependencies, which include CmdStanPy. With the virtual environment active, move into the `baynes` folder
+3. Install the required Python packages and dependencies, which include CmdStanPy. With the virtual environment active, move into the `baynes` folder and install the package with pip.
    ```
    (baynesenv) $ cd baynes
-   ```
-   and type
-   ```
    (baynesenv) $ pip install .
    ```
+   (optional) `baynes` allows to retrieve the Stan models from a user defined directory and set the default Stan compiler options. Run:
+   ```
+   (baynesenv) $ python set_defaults.py
+   ```
+   To set `stan/` as the models' base folder and add `stan/include/` to the compiler search path.
 
 4. Install CmdStan and Stan. If `g++>=4.9.3` and `make>=3.81` are already present, this can be done automatically using CmdStanPy's built-in function `install_cmdstan`:
    ```
@@ -53,19 +51,13 @@ Tools for bayesian data analysis
 
     baynes
     │
-    ├── src                            # Project source code
-    ├── scripts                        # Directory for scripts and executables
-    ├── test                           # Directory used to collect test code
-    ├── requirements.txt  # Requirements file specifing the lists of packages to install
-    ├── setup.py                       #
+    ├── baynes                         # Project source code
+    ├── stan                           # Collection of tested Stan models and functions
+    ├── examples                       # Jupyter Notebooks with demonstrations and tutorials
+    ├── requirements.txt               # Requirements file specifing the python packages to install
+    ├── setup.py                       # Package installation script
+    ├── set_defaults.py                # Set the path to Stan models and the default compiler arguments
     ├── .gitignore                     # Specifies intentionally untracked files to ignore
     └── README.md                      # README file
 
  ASCII art tree structure taken from [here](https://codepen.io/patrickhlauke/pen/azbYWZ)
-
-### Documentation
-*
-
- ### About README
- The README files are text files that introduces and explains a project. It contains information that is commonly required to understand what the project is about.
- At this [link](https://help.github.com/en/github/writing-on-github/basic-writing-and-formatting-syntax) a basic guide on the writing and formatting syntax

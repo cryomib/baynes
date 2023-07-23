@@ -17,7 +17,6 @@ setup(
 #    license              = read('LICENSE'),
     install_requires     = read('requirements.txt').splitlines(),
     package_dir          = {'': 'baynes'},
-    packages             = find_packages(where='baynes'),
     package_data         = {'': ['config.json']},
     include_package_data = True,
     python_requires      = '>=3.8',
