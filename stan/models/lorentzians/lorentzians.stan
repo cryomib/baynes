@@ -26,33 +26,29 @@ transformed data {
 }
 
 parameters {
-  //ordered[N_peaks] E0;
+  ordered[N_peaks] E0;
   vector<lower=0>[N_peaks] gamma;
   vector<lower=0>[N_peaks] i;
   real<lower=0, upper=1> bkg;
   real<lower=0.1, upper=15> sigma;
 }
 
-transformed parameters {
-  ordered[N_peaks] E0;
-}
-
 model {
-  E0 ~ normal(p_E0-5000, p_sigma);
-  gamma ~ normal(p_gamma, 1);
+  E0 ~ normal(p_E0, p_sigma);
+  gamma ~ normal(p_gamma, p_gamma/10);
   i ~ normal(p_i, p_i/5);
   bkg ~ beta(2.5, 40);
 
   sigma ~ normal(p_sigma, 2);
   
   if (prior == 0) {
-    counts ~ poisson(spectrum(x_extended, x_window, sigma, bkg, E0+5000, gamma, i) * N_ev);
+    counts ~ poisson(spectrum(x_extended, x_window, sigma, bkg, E0, gamma, i) * N_ev);
   }
 }
 
 generated quantities {
   array[N_bins] int counts_rep; 
-  counts_rep = poisson_rng(spectrum(x_extended, x_window, sigma, bkg, E0+5000, gamma, i) * N_ev);
+  counts_rep = poisson_rng(spectrum(x_extended, x_window, sigma, bkg, E0, gamma, i) * N_ev);
 
 }
 

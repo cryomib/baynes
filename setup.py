@@ -15,7 +15,7 @@ setup(
     author_email         = 'campana.pietro@gmail.com, matteo.borghesi@mib.infn.it',
     url                  = 'https://github.com/cryomib/baynes',
     install_requires     = read('requirements.txt').splitlines(),
-    packages             = find_packages(exclude=[".github", "stan", "examples"]),
+    packages             = find_packages(exclude=[".github", "stan", "examples", "scripts"]),
     package_data         = {'': ['config.json']},
     include_package_data = True,
     python_requires      = '>=3.8',

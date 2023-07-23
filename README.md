@@ -33,7 +33,7 @@ Tools for bayesian data analysis
    ```
    (optional) `baynes` allows to retrieve the Stan models from a user defined directory and set the default Stan compiler options. Run:
    ```
-   (baynesenv) $ python set_defaults.py
+   (baynesenv) $ python scripts/set_defaults.py
    ```
    To set `stan/` as the models' base folder and add `stan/include/` to the compiler search path.
 
