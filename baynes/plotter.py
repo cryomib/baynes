@@ -248,6 +248,14 @@ class MatplotlibHelper:
         fig.set_size_inches(x, y)
         return fig
 
+    def plot(self, *args, **kwargs):
+        fig = self.new_figure("plot")
+        ax = fig.subplots()
+        ax.plot(*args, **kwargs)
+        plt.show()
+        if self.save:
+            fig.savefig(
+                f"{self.output_dir}{self.current_title}{self.format}", bbox_inches='tight')
 
 
 class FitPlotter(MatplotlibHelper):

@@ -1,12 +1,12 @@
 {
-    "STAN_MODELS_DIR": "/home/user/models",
+    "STAN_MODELS_DIR": "/home/pietro/work/TESI/baynes/src/stan",
     "STAN_COMPILER_KWARGS": {
         "cpp_options": {
             "STAN_THREADS": true,
-            "jN": "j4"
+            "jN": 4
         },
         "stanc_options": {
-            "include-paths": "/home/user/model/include/"
+            "include-paths": "/home/user/models/include/"
         }
     }
 }
