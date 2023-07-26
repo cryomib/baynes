@@ -9,10 +9,11 @@ data {
   vector[N_bins + 1] x;
   int counts[N_det, N_bins];
   
-  real<lower=0> N_ev;
+  vector[N_det] N_ev;
   real<lower=0> p_Q;
   real<lower=0> p_FWHM;
   int<lower=0, upper=1> prior;
+  real shift;
 }
 
 transformed data {
@@ -28,7 +29,7 @@ transformed data {
 
 parameters {
   real<lower=0, upper=1> m_nu_red;
-  real<lower=0> Q[N_det];
+  real Q[N_det];
   real<lower=0, upper=1> bkg[N_det];
  // real<lower=0.1, upper=15> sigma;
 }
@@ -42,14 +43,14 @@ model {
  // sigma ~ normal(p_sigma, 0.3);
 
   for (i in 1:N_det){
-    Q[i] ~ normal(p_Q, 10);
+    Q[i] ~ normal(p_Q-shift, 10);
     bkg[i] ~ beta(2.5, 40);
     if (prior == 0) {
-      counts[i] ~ poisson(spectrum(x_extended, x_window, p_sigma, bkg[i], m_nu, Q[i], bare_spectrum) * N_ev);
+      counts[i] ~ poisson(spectrum(x_extended, x_window, p_sigma, bkg[i], m_nu, Q[i]+shift, bare_spectrum) * N_ev[i]);
     }
   }
 }
 
 generated quantities {
-  array[N_bins] int counts_rep = poisson_rng(spectrum(x_extended, x_window, p_sigma, bkg[1], m_nu, Q[1], bare_spectrum) * N_ev);
+  array[N_bins] int counts_rep = poisson_rng(spectrum(x_extended, x_window, p_sigma, bkg[1], m_nu, Q[1]+shift, bare_spectrum) * N_ev[1]);
 }

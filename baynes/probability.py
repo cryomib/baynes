@@ -5,6 +5,30 @@ def lorentzian(E, E0, gamma):
     gamma_2 = gamma / 2
     return 1 / np.pi * gamma_2 / ((E - E0) ** 2 + gamma_2**2)
 
+def lorentzian_asymm(E, E0, gamma, asymm):
+    gamma_2 = gamma / 2
+    gamma_L = (1-asymm) * gamma_2
+    gamma_R = (1+asymm) * gamma_2
+    if isinstance(E, list):
+        E = np.array(E)
+    if isinstance(E,np.ndarray) is False:
+        if E < E0:
+            y = 1/np.pi * (gamma_L**2 )/ ((E - E0)**2 + gamma_L**2)
+
+        else:
+            y = 1/np.pi * (gamma_R**2 )/ ((E - E0)**2 + gamma_R**2)
+    else:
+        y = np.zeros(len(E))
+        pos_dx = np.where(E >= E0)[0]
+        pos_sx = np.where(E < E0)[0]
+        SS = E[pos_sx]
+        DD = E[pos_dx]
+        y[pos_sx] = gamma_L**2/((SS - E0)**2 + gamma_L**2)
+        y[pos_dx] = gamma_R**2/((DD - E0)**2 + gamma_R**2)
+    norm1 = 1./(np.pi*gamma_L*2)
+    norm2 = 1./(np.pi*gamma_R*2)
+    y = y *(norm1 + norm2)
+    return y
 
 def HoSpectrum(
     E,

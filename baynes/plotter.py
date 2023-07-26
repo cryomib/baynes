@@ -411,7 +411,7 @@ class FitPlotter(MatplotlibHelper):
                     ax.plot(draws[i], color=color, linewidth=0.3, alpha=0.4)
                 ax1.plot((draws[i]-events)/np.sqrt(events), color=color, linewidth=0.3, alpha=0.5)
         else:
-            lo, hi = np.percentile(draws, percs, axis=0)
+            lo, hi = np.nanpercentile(draws, percs, axis=0)
             ax.fill_between(np.arange(len(events)), lo, hi,
                             color=color, alpha=0.4, label=rep_key)
             ax1.fill_between(np.arange(len(events)), (lo-events)/np.sqrt(events), (hi-events)/np.sqrt(events),
@@ -465,7 +465,7 @@ class FitPlotter(MatplotlibHelper):
             kdeline = ax.lines[-1]
             x_data = kdeline.get_xdata()
             y_data = kdeline.get_ydata()
-            left, middle, right = np.percentile(x, percs)
+            left, middle, right = np.nanpercentile(x, percs)
             ax.vlines(middle, 0, np.interp(middle, x_data, y_data),
                       color=median_color, ls=':', linewidth=1.5, label='median')
             ax.fill_between(x_data, 0, y_data,
@@ -491,7 +491,7 @@ class FitPlotter(MatplotlibHelper):
             kdeline = ax.lines[0]
             x_data = kdeline.get_xdata()
             y_data = kdeline.get_ydata()
-            median = np.percentile(x, [50])
+            median = np.nanpercentile(x, [50])
             ax.vlines(median, 0, np.interp(median, y_data,y_data), color="orange", ls=':')
             ax.fill_between(x_data, 0, y_data, color=color, alpha=1)
 
