@@ -28,19 +28,18 @@ transformed data {
 parameters {
   ordered[N_peaks] E0;
   vector<lower=0>[N_peaks] gamma;
-  vector<lower=0>[N_peaks] i;
+  vector<lower=0, upper=1>[N_peaks] i;
   vector<lower=-1, upper=1>[N_peaks] asymm;
   real<lower=0> N_bkg;
-  real<lower=0, upper=20> FWHM; 
+  real<lower=0, upper=3*p_FWHM> FWHM;
 }
 
 model {
   E0 ~ normal(p_E0-p_E0[1], p_FWHM);
   gamma ~ normal(p_gamma, p_gamma/3);
   asymm ~ normal(0, 0.2);
-  i ~ normal(p_i, p_i/5);
+  i ~ normal(p_i, p_i/4);
   N_bkg ~ normal(0, sqrt(N_ev*0.01));
-
   FWHM ~ normal(0, 5);
   
   if (prior == 0) {
