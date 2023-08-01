@@ -6,6 +6,12 @@ import numpy as np
 from cmdstanpy import CmdStanModel
 
 def _get_config_file():
+    """
+    Get the path to the Baynes configuration file.
+
+    Returns:
+        str: The path to the configuration file.
+    """
     baynes_path = os.path.dirname(baynes.__file__)
     config_file = os.path.join(baynes_path, 'config.json')
     if not os.path.isfile(config_file):
@@ -16,6 +22,9 @@ def _get_config_file():
 def set_models_path(path: str) -> None:
     """
     Validate, then set the Stan models directory path.
+
+    Parameters:
+        path (str): The directory path to the Stan models.
     """
     if not os.path.isdir(path):
         raise ValueError(f"No CmdStan directory, path {path} does not exist.")
@@ -29,9 +38,13 @@ def set_models_path(path: str) -> None:
     with open(cfile, 'w') as f:
         json.dump(config, f, indent=4)
 
+
 def get_models_path() -> str:
     """
     Validate, then return the Stan models directory path.
+
+    Returns:
+        str: The directory path to the Stan models.
     """
     with open(_get_config_file(), 'r') as f:
         config = json.load(f)
@@ -46,7 +59,14 @@ def get_models_path() -> str:
         raise ValueError(f"No CmdStan directory, path {models_dir} does not exist.")
     return os.path.normpath(models_dir)
 
+
 def set_compiler_kwargs(compiler_kwargs: dict) -> None:
+    """
+    Set the Stan compiler kwargs in the configuration file.
+
+    Parameters:
+        compiler_kwargs (dict): Dictionary containing compiler kwargs.
+    """
     cfile = _get_config_file()
     with open(cfile, 'r') as f:
         config = json.load(f)
@@ -56,7 +76,14 @@ def set_compiler_kwargs(compiler_kwargs: dict) -> None:
     with open(cfile, 'w') as f:
         json.dump(config, f, indent=4)
 
+
 def get_compiler_kwargs() -> dict:
+    """
+    Get the Stan compiler kwargs from the configuration file.
+
+    Returns:
+        dict: Dictionary containing compiler kwargs.
+    """
     with open(_get_config_file(), 'r') as f:
         config = json.load(f)
     return config['STAN_COMPILER_KWARGS']
@@ -65,6 +92,12 @@ def get_compiler_kwargs() -> dict:
 def get_stan_file(stan_file: str) -> str or None:
     """
     Return a .stan file from the models directory path.
+
+    Parameters:
+        stan_file (str): The name of the .stan file to find.
+
+    Returns:
+        str or None: The path to the .stan file or None if not found.
     """
     models_path = get_models_path()
     files = glob.glob(get_models_path() + "/**/" + stan_file, recursive=True)
@@ -82,7 +115,13 @@ def get_stan_file(stan_file: str) -> str or None:
 
 def select_from_list(options):
     """
-    User selection from list of options
+    Allow the user to select an option from a list.
+
+    Parameters:
+        options (list): List of options to choose from.
+
+    Returns:
+        Any: The selected option from the list.
     """
     print(f"Select an option number [1-{str(len(options))}]:")
     for idx, option in enumerate(options):
@@ -103,6 +142,22 @@ def select_from_list(options):
 
 
 def inits_from_priors(model, prior_fit, n_chains, dir="inits"):
+    """
+    Generate initialization files from prior sampling results.
+
+    This function generates initialization files for Stan chains based on prior sampling results. It takes a Stan model
+    object (`model`) and a prior fit object (`prior_fit`) as inputs and creates `n_chains` initialization files with
+    random initial values for the Stan parameters.
+
+    Parameters:
+        model: The Stan model object.
+        prior_fit (CmdStanMCMC): The CmdStanMCMC object obtained from prior sampling.
+        n_chains (int): The number of chains to generate.
+        dir (str, optional): The directory path to save the initialization files. Default is "inits".
+
+    Returns:
+        list: List of paths to the generated initialization files.
+    """
     if not os.path.isdir(dir):
         os.makedirs(dir)
 

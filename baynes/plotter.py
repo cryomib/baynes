@@ -265,8 +265,31 @@ class MatplotlibHelper:
                 f"{self.output_dir}{self.current_title}{self.format}", bbox_inches='tight')
 
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from baynes.matplotlib_helper import MatplotlibHelper
+
 class FitPlotter(MatplotlibHelper):
-    
+    """
+    A class for plotting and visualizing Bayesian fit results.
+
+    This class extends the MatplotlibHelper class to provide functionalities for plotting Bayesian fit results.
+    It allows adding and managing multiple fits, generating various types of plots, and handling dataframes.
+
+    Parameters:
+        fit: The initial fit object to be added (optional).
+        fit_title: Title for the initial fit (optional).
+        **kwargs: Additional keyword arguments to pass to the MatplotlibHelper constructor.
+
+    Attributes:
+        fits (dict): Dictionary containing fit objects with their titles.
+        current_fit (str): The title of the currently selected fit.
+        method_variables (list): List of variables obtained from the fit's method.
+        rep_variables (list): List of replicate variables in the fit.
+        stan_variables (list): List of standard variables in the fit.
+    """
+
     def __init__(self, fit=None, fit_title=None, **kwargs):
         self.fits = {}
         if fit is not None:
@@ -274,6 +297,17 @@ class FitPlotter(MatplotlibHelper):
         super().__init__(**kwargs)
 
     def add_fit(self, fit, fit_title=None, rep_names=None):
+        """
+        Add a fit to the FitPlotter.
+
+        Parameters:
+            fit: The fit object to be added.
+            fit_title (str, optional): Title for the fit (default is auto-generated).
+            rep_names (list, optional): List of strings for replicate variable names (default is ['_rep']).
+
+        Returns:
+            None
+        """
         if isinstance(fit_title, str) is False:
             fit_title = 'fit' + str(len(self.fits))
         self.fits[fit_title] = fit
@@ -291,11 +325,33 @@ class FitPlotter(MatplotlibHelper):
         self.stan_variables = stan_variables
 
     def get_fit(self, title=None):
+        """
+        Get the fit object for the specified title.
+
+        Parameters:
+            title (str, optional): The title of the fit to retrieve. If None, the current fit is used.
+
+        Returns:
+            The fit object corresponding to the specified title.
+        """
         if title is None:
             title = self.current_fit
         return self.fits[title]
 
     def draws_df(self, fit_titles=None, parameters=None, inc_warmup=False):
+        """
+        Generate a pandas DataFrame containing draws from the specified fits and parameters.
+
+        Parameters:
+            fit_titles (list or str, optional): List of fit titles to include in the DataFrame. Default is the current fit.
+                                              If 'all', includes all fit titles in reverse order of addition.
+            parameters (list or str, optional): List of parameter names to include in the DataFrame.
+                                                If 'all_stan', includes all standard variables. Default is None.
+            inc_warmup (bool, optional): Whether to include warm-up draws. Default is False.
+
+        Returns:
+            pd.DataFrame: DataFrame containing the specified draws.
+        """
         if fit_titles is None:
             fit_titles = [self.current_fit]
         elif fit_titles == 'all':
@@ -310,16 +366,45 @@ class FitPlotter(MatplotlibHelper):
         return draws_df
 
     def validate_parameters(self, params):
+        """
+        Validate the parameters for plotting.
+
+        Parameters:
+            params (list or str): List of parameter names or a string (e.g., 'all_stan').
+
+        Returns:
+            list: List of valid parameter names.
+        """
         if isinstance(params, list) is False:
             if params == 'all_stan':
                 params = self.stan_variables
             else:
                 params = [params]
         return params
-    
+
     @staticmethod
     def single_fit_plot(func):
+        """
+        Decorator for generating single-fit plots.
+
+        Parameters:
+            func: The plotting function to be decorated.
+
+        Returns:
+            The decorated function for single-fit plots.
+        """
         def wrapper(self, parameters='all_stan', **kwargs):
+            """
+            Wrapper for the plotting function with single-fit capability.
+
+            Parameters:
+                parameters (list or str, optional): List of parameter names or a string (e.g., 'all_stan') to be plotted.
+                                                    Default is 'all_stan'.
+                **kwargs: Additional keyword arguments to pass to the plotting function.
+
+            Returns:
+                None
+            """
             parameters = self.validate_parameters(parameters)
             n_plots = len(parameters)
             n_cols = min(n_plots, self.col_wrap)
@@ -349,7 +434,31 @@ class FitPlotter(MatplotlibHelper):
 
     @staticmethod
     def multi_fit_plot(func):
+        """
+        Decorator for generating multi-fit plots.
+
+        Parameters:
+            func: The plotting function to be decorated.
+
+        Returns:
+            The decorated function for multi-fit plots.
+        """
         def wrapper(self, parameters='all_stan', fit_titles=None, inc_warmup=False, df=None, **kwargs):
+            """
+            Wrapper for the plotting function with multi-fit capability.
+
+            Parameters:
+                parameters (list or str, optional): List of parameter names or a string (e.g., 'all_stan') to be plotted.
+                                                    Default is 'all_stan'.
+                fit_titles (list or str, optional): List of fit titles to include in the DataFrame.
+                                                    Default is the current fit.
+                                                    If 'all', includes all fit titles in reverse order of addition.
+                inc_warmup (bool, optional): Whether to include warm-up draws. Default is False.
+                df (pd.DataFrame, optional): The DataFrame containing draws for plotting (overrides fit_titles and parameters).
+
+            Returns:
+                None
+            """
             parameters = self.validate_parameters(parameters)
             if df is None:
                 draws_df = self.draws_df(
@@ -363,6 +472,7 @@ class FitPlotter(MatplotlibHelper):
                     f"{self.output_dir}{self.current_title}{self.format}", bbox_inches='tight')
 
         return wrapper
+
 
     @single_fit_plot
     def convergence_plot(self, par, figure, fit_name=None, alpha=0.9, linewidth=0.3, initial_steps=50, **kwargs):
@@ -393,6 +503,23 @@ class FitPlotter(MatplotlibHelper):
 
     @single_fit_plot
     def predictive_check(self, rep_key, figure, data=None, data_key=None, fit_name=None, percs=[5, 95], color='green', lines = False, n_bins=None):    
+        """
+        Generate a predictive check plot for a single fit.
+
+        Parameters:
+            rep_key (str): The key for the replicate variable in the fit draws.
+            figure: The Matplotlib figure object to plot on.
+            data (pd.DataFrame, optional): Dataframe containing the data used in the fit. Default is None.
+            data_key (str, optional): The key for the data column used in the predictive check. Default is None.
+            fit_name (str, optional): The title of the fit to use for plotting. Default is the current fit.
+            percs (list, optional): List of percentiles for shading the plot. Default is [5, 95].
+            color (str, optional): Color of the plot lines and fill. Default is 'green'.
+            lines (bool, optional): If True, plot individual lines for each replicate. Default is False.
+            n_bins (int, optional): Number of bins to use for histogram-like plots. Default is None.
+
+        Returns:
+            figure: The Matplotlib figure object containing the predictive check plot.
+        """
         ax, ax1 = figure.subplots(2, 1, height_ratios=[2.5, 1], sharex=True)
         draws = self.get_fit(fit_name).draws_pd(rep_key, inc_warmup=False).to_numpy()
         events = np.array(data[data_key])
@@ -428,6 +555,22 @@ class FitPlotter(MatplotlibHelper):
 
     @multi_fit_plot
     def pair_grid(self, df, parameters, legend=False, hue='fit', height=1.5, corner=True, s=0.5, **kwargs):
+        """
+        Generate a pair plot grid for multiple fits.
+
+        Parameters:
+            df (pd.DataFrame): Dataframe containing the data for the pair plot.
+            parameters (list): List of parameter names to include in the pair plot.
+            legend (bool, optional): If True, include a legend. Default is False.
+            hue (str, optional): Variable name for coloring the plot by fit. Default is 'fit'.
+            height (float, optional): Height of each subplot. Default is 1.5.
+            corner (bool, optional): If True, generate only the lower triangle of the grid. Default is True.
+            s (float, optional): Marker size for scatterplot. Default is 0.5.
+            **kwargs: Additional keyword arguments to pass to the plotting function.
+
+        Returns:
+            grid: The Seaborn PairGrid object containing the pair plot grid.
+        """
         grid = sns.PairGrid(df, hue=hue, height=height, corner=corner)
         grid.map_offdiag(sns.scatterplot, s=s, **kwargs)
         grid.map_diag(sns.histplot, bins=20)
@@ -438,6 +581,22 @@ class FitPlotter(MatplotlibHelper):
 
     @multi_fit_plot
     def dis_plot(self, df, parameters, legend=True, facet_kws = {"sharey": False, "sharex": False, 'legend_out':True}, kind = "kde", hue = 'fit', col='variable', **kwargs):
+        """
+        Generate a distribution plot for multiple fits.
+
+        Parameters:
+            df (pd.DataFrame): Dataframe containing the data for the distribution plot.
+            parameters (list): List of parameter names to include in the distribution plot.
+            legend (bool, optional): If True, include a legend. Default is True.
+            facet_kws (dict, optional): Additional keyword arguments for facetting the plot. Default is {"sharey": False, "sharex": False, 'legend_out':True}.
+            kind (str, optional): Type of the distribution plot (e.g., 'kde', 'hist', 'ecdf'). Default is 'kde'.
+            hue (str, optional): Variable name for coloring the plot by fit. Default is 'fit'.
+            col (str, optional): Variable name for organizing plots into columns. Default is 'variable'.
+            **kwargs: Additional keyword arguments to pass to the plotting function.
+
+        Returns:
+            displot: The Seaborn displot object containing the distribution plot.
+        """
         dmelt = df.melt(id_vars=['fit'])
         displot = sns.displot(data=dmelt, x='value', legend=legend, facet_kws=facet_kws,
                               kind=kind, hue=hue, col=col, col_wrap=min(len(parameters), self.col_wrap), height=self.fig_scale/1.5, **kwargs)
@@ -448,6 +607,25 @@ class FitPlotter(MatplotlibHelper):
     
     @multi_fit_plot
     def cat_plot(self, df, parameters, id_vars=['fit'], x='value', y='fit', legend = True, sharex = False, kind = 'box', hue=None, col = 'variable', **kwargs):
+        """
+        Generate a categorical plot for multiple fits.
+
+        Parameters:
+            df (pd.DataFrame): Dataframe containing the data for the categorical plot.
+            parameters (list): List of parameter names to include in the categorical plot.
+            id_vars (list, optional): List of variable names to use as identifier variables. Default is ['fit'].
+            x (str, optional): Variable name for the x-axis. Default is 'value'.
+            y (str, optional): Variable name for the y-axis. Default is 'fit'.
+            legend (bool, optional): If True, include a legend. Default is True.
+            sharex (bool, optional): If True, share x-axis across subplots. Default is False.
+            kind (str, optional): Type of the categorical plot (e.g., 'box', 'violin', 'bar'). Default is 'box'.
+            hue (str, optional): Variable name for coloring the plot. Default is None.
+            col (str, optional): Variable name for organizing plots into columns. Default is 'variable'.
+            **kwargs: Additional keyword arguments to pass to the plotting function.
+
+        Returns:
+            catplot: The Seaborn catplot object containing the categorical plot.
+        """
         dmelt = df.melt(id_vars=id_vars)
         catplot = sns.catplot(data=dmelt, legend = legend, sharex = sharex, x=x, y=y,
                               kind = kind, hue=hue, col = col, col_wrap=min(len(parameters), self.col_wrap), height=self.fig_scale/1.5, **kwargs)
@@ -460,6 +638,18 @@ class FitPlotter(MatplotlibHelper):
     
     @multi_fit_plot
     def kde_plot(self, df, parameters, hue='fit', **kwargs):
+        """
+        Generate a KDE (Kernel Density Estimation) plot for multiple fits.
+
+        Parameters:
+            df (pd.DataFrame): Dataframe containing the data for the KDE plot.
+            parameters (list): List of parameter names to include in the KDE plot.
+            hue (str, optional): Variable name for coloring the plot by fit. Default is 'fit'.
+            **kwargs: Additional keyword arguments to pass to the informative_kde function.
+
+        Returns:
+            kdegrid: The Seaborn FacetGrid object containing the KDE plot.
+        """
         def informative_kde(x=None, percs=[5, 50, 95], color='purple', median_color='black', label=None, bw_adjust=0.3):
             ax = sns.kdeplot(x, fill=False, bw_adjust=bw_adjust, color=color, label=label)
             kdeline = ax.lines[-1]
@@ -484,6 +674,20 @@ class FitPlotter(MatplotlibHelper):
 
     @multi_fit_plot
     def ridgeplot(self, df, parameters, row='fit', col='variable', hue='fit', pcolor=-3):
+        """
+        Generate a ridge plot for multiple fits.
+
+        Parameters:
+            df (pd.DataFrame): Dataframe containing the data for the ridge plot.
+            parameters (list): List of parameter names to include in the ridge plot.
+            row (str, optional): Variable name for organizing plots into rows. Default is 'fit'.
+            col (str, optional): Variable name for organizing plots into columns. Default is 'variable'.
+            hue (str, optional): Variable name for coloring the plot by fit. Default is 'fit'.
+            pcolor (int, optional): The starting color value for the palette. Default is -3.
+
+        Returns:
+            grid: The Seaborn FacetGrid object containing the ridge plot.
+        """
         n_fits = df.fit.nunique()
         sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
         def mykde(x=None, color='purple', label=None):
