@@ -53,10 +53,11 @@ Tools for bayesian data analysis
     │
     ├── baynes                         # Project source code
     ├── stan                           # Collection of tested Stan models and functions
-    ├── examples                       # Jupyter Notebooks with demonstrations and tutorials
+    ├── examples                       # Demonstrations and tutorials
+    ├── notebooks                      # Jupyter Notebooks for development and testing of new features
+    ├── scripts                        # Simple python scripts for configuration
     ├── requirements.txt               # Requirements file specifing the python packages to install
     ├── setup.py                       # Package installation script
-    ├── set_defaults.py                # Set the path to Stan models and the default compiler arguments
     ├── .gitignore                     # Specifies intentionally untracked files to ignore
     └── README.md                      # README file
 
