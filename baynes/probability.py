@@ -82,11 +82,7 @@ def HoSpectrum(
         * spectrum
     )
 
-
-import numpy as np
-import numbers
-
-def hdi(samples, prob=0.95):
+sdef hdi(samples, prob=0.95):
     """
     Calculate the Highest Density Interval (HDI) for a given sample distribution.
 

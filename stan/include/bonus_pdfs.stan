@@ -1,5 +1,3 @@
-functions {
-
   // gaussian
   vector normal_pdf(vector x, int N_x, real mu, real sigma) {
     vector[N_x] y;
@@ -36,4 +34,3 @@ functions {
     }
     return Ho_spectrum;
   }
-}

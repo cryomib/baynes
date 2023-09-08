@@ -7,25 +7,24 @@ import matplotlib.pyplot as plt
 from collections import OrderedDict
 
 class MatplotlibHelper:
-    def __init__(self, col_wrap=3, fig_scale=6, save=False, output_dir='figures/', output_format='.jpeg', style='ggplot'):
+    def __init__(self, col_wrap=3, fig_scale=5, fig_ratio=1.2, save=False, output_dir='figures/', output_format='.jpeg'):
         """
         Helper class for creating and managing matplotlib figures.
 
         Args:
             col_wrap (int): Number of columns to wrap the figures.
-            fig_scale (int): Scale factor for the figure size.
+            fig_scale (float): Base figure size.
+            fig_ratio (float): Lenght to height ratio for the figures.
             save (bool): Whether to save the figures.
             output_dir (str): Directory path to save the figures.
             output_format (str): Output format for the saved figures.
-            style (str): Matplotlib style to use.
         """
-        plt.style.use(style)
-        self.style = style
         self.figures = {}
         self._previuos_figures = {}
         self.current_title = None
         self.col_wrap = col_wrap
         self.fig_scale = fig_scale
+        self.fig_ratio = fig_ratio
         self.output_dir = output_dir
         self.set_savefig(save)
         self.format = output_format
@@ -108,6 +107,7 @@ class MatplotlibHelper:
         figure_title = self.generate_new_title(plot_type)
         self.figures[figure_title] = figure
         self.current_title = figure_title
+        figure.set_size_inches(self.fig_scale*self.fig_ratio, self.fig_scale)
         return figure
 
     def clear_figures(self, titles=None, clear_files=True):
@@ -263,12 +263,7 @@ class MatplotlibHelper:
         if self.save:
             fig.savefig(
                 f"{self.output_dir}{self.current_title}{self.format}", bbox_inches='tight')
-
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from baynes.matplotlib_helper import MatplotlibHelper
+        return ax
 
 class FitPlotter(MatplotlibHelper):
     """
@@ -338,6 +333,15 @@ class FitPlotter(MatplotlibHelper):
             title = self.current_fit
         return self.fits[title]
 
+    def get_fit_titles(self, title=None):
+        if title is None:
+            titles = self.current_fit
+        elif title == 'all':
+            titles = list(self.fits.keys())
+        else:
+            titles = [t for t in self.fits.keys() if title in t]
+        return titles
+
     def draws_df(self, fit_titles=None, parameters=None, inc_warmup=False):
         """
         Generate a pandas DataFrame containing draws from the specified fits and parameters.
@@ -393,7 +397,7 @@ class FitPlotter(MatplotlibHelper):
         Returns:
             The decorated function for single-fit plots.
         """
-        def wrapper(self, parameters='all_stan', **kwargs):
+        def wrapper(self, parameters='all_stan', legend=True, **kwargs):
             """
             Wrapper for the plotting function with single-fit capability.
 
@@ -420,11 +424,12 @@ class FitPlotter(MatplotlibHelper):
                 fig.set_layout_engine('compressed')
             for i, par in enumerate(parameters):
                 subfig = func(self, par, subfigs[i], **kwargs)
-            handles, labels = subfig.axes[0].get_legend_handles_labels()
-            lgd = fig.legend(handles, labels, bbox_to_anchor=(
-                1.15, 0.6), facecolor='white', edgecolor='white')
-            for line in lgd.get_lines():
-                line.set_linewidth(1.5)
+            if legend:
+                handles, labels = subfig.axes[0].get_legend_handles_labels()
+                lgd = fig.legend(handles, labels, bbox_to_anchor=(
+                    1.15, 0.6), facecolor='white', edgecolor='white')
+                for line in lgd.get_lines():
+                    line.set_linewidth(1.5)
             plt.show()
             if self.save:
                 fig.savefig(
@@ -475,9 +480,9 @@ class FitPlotter(MatplotlibHelper):
 
 
     @single_fit_plot
-    def convergence_plot(self, par, figure, fit_name=None, alpha=0.9, linewidth=0.3, initial_steps=50, **kwargs):
+    def convergence_plot(self, par, figure, fit_name=None, wspace=0.1, alpha=0.9, linewidth=0.3, initial_steps=50, **kwargs):
         ax = figure.subplots(1, 2, width_ratios=[
-                             2.5, 1], sharey=True, gridspec_kw={'wspace': 0.01})
+                             2.5, 1], sharey=True, gridspec_kw={'wspace': wspace})
         fit = self.get_fit(fit_name)
         n_chains = fit.chains
         draws_df = fit.draws_pd(inc_warmup=True)[[par]]
@@ -527,22 +532,21 @@ class FitPlotter(MatplotlibHelper):
             events, bins = np.histogram(events, bins=n_bins)
             draws = np.array([np.histogram(dr, bins=bins)[0] for dr in draws])
 
-        ax.plot(events, color=color, linewidth=1.5, label=data_key, linestyle='--')
-        ax1.plot(np.zeros(len(events)), color=color, linewidth=1.5, linestyle='--', label=data_key)
-
         if lines:
             for i in range(min(80, len(draws))):
                 if i==0:
-                    ax.plot(draws[i], color=color, linewidth=0.3, alpha=0.4, label=rep_key)
+                    ax.plot(draws[i], color=color, linewidth=0.2, alpha=0.2, label='replicated')
                 else:
-                    ax.plot(draws[i], color=color, linewidth=0.3, alpha=0.4)
-                ax1.plot((draws[i]-events)/np.sqrt(events), color=color, linewidth=0.3, alpha=0.5)
+                    ax.plot(draws[i], color=color, linewidth=0.2, alpha=0.2)
+                ax1.plot((draws[i]-events)/np.sqrt(events), color=color, linewidth=0.2, alpha=0.2)
         else:
             lo, hi = np.nanpercentile(draws, percs, axis=0)
             ax.fill_between(np.arange(len(events)), lo, hi,
-                            color=color, alpha=0.4, label=rep_key)
+                            color=color, alpha=0.4, label='replicated')
             ax1.fill_between(np.arange(len(events)), (lo-events)/np.sqrt(events), (hi-events)/np.sqrt(events),
-                        color=color, alpha=0.4, label=rep_key)
+                        color=color, alpha=0.4)
+        ax.plot(events, color='black', linewidth=2, label='observed', linestyle='-')
+        ax1.plot(np.zeros(len(events)), color='black', linewidth=1.5, linestyle='--')
         if n_bins is not None:
             ax.set_ylabel('counts')    
             ax1.set_xlabel(data_key)         
@@ -650,7 +654,7 @@ class FitPlotter(MatplotlibHelper):
         Returns:
             kdegrid: The Seaborn FacetGrid object containing the KDE plot.
         """
-        def informative_kde(x=None, percs=[5, 50, 95], color='purple', median_color='black', label=None, bw_adjust=0.3):
+        def informative_kde(x=None, percs=[5, 50, 95], color='purple', median_color='black', label=None, bw_adjust=0.4):
             ax = sns.kdeplot(x, fill=False, bw_adjust=bw_adjust, color=color, label=label)
             kdeline = ax.lines[-1]
             x_data = kdeline.get_xdata()
@@ -664,7 +668,7 @@ class FitPlotter(MatplotlibHelper):
             return ax
 
         dmelt = df.melt(id_vars=['fit'])        
-        kdegrid = sns.FacetGrid(dmelt, col='variable', hue=hue, col_wrap=min(len(parameters), self.col_wrap), sharey=False, sharex=False, height=self.fig_scale/2)
+        kdegrid = sns.FacetGrid(dmelt, col='variable', hue=hue, col_wrap=min(len(parameters), self.col_wrap), sharey=False, sharex=False, height=self.fig_scale)
         kdegrid.map(informative_kde, 'value', **kwargs)
         kdegrid.add_legend(label_order= kdegrid.hue_names + ['median'], title='',bbox_to_anchor=(1.05, 0.5))
         kdegrid.set_titles("")
@@ -673,7 +677,7 @@ class FitPlotter(MatplotlibHelper):
         return kdegrid
 
     @multi_fit_plot
-    def ridgeplot(self, df, parameters, row='fit', col='variable', hue='fit', pcolor=-3):
+    def ridgeplot(self, df, parameters, row='fit', col='variable', hue='fit', pcolor=-3, height=1):
         """
         Generate a ridge plot for multiple fits.
 
@@ -689,9 +693,8 @@ class FitPlotter(MatplotlibHelper):
             grid: The Seaborn FacetGrid object containing the ridge plot.
         """
         n_fits = df.fit.nunique()
-        sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
         def mykde(x=None, color='purple', label=None):
-            ax = sns.kdeplot(x, clip_on=False, fill=False, alpha=1, linewidth=1.2, color="w", bw_adjust=.3)
+            ax = sns.kdeplot(x, clip_on=False, fill=False, alpha=1, linewidth=1.2, color="w")
             kdeline = ax.lines[0]
             x_data = kdeline.get_xdata()
             y_data = kdeline.get_ydata()
@@ -699,22 +702,22 @@ class FitPlotter(MatplotlibHelper):
             ax.vlines(median, 0, np.interp(median, y_data,y_data), color="orange", ls=':')
             ax.fill_between(x_data, 0, y_data, color=color, alpha=1)
 
-        dmelt = df.melt(id_vars=['fit'])
-        pal = sns.cubehelix_palette(n_fits+3, rot=-.4, start=pcolor, reverse=True)
-        grid = sns.FacetGrid(dmelt, row=row, hue=hue, col=col, aspect=self.fig_scale, height=1, palette=pal, sharex=True, sharey=False)
+        with sns.axes_style(style="white", rc={"axes.facecolor": (0, 0, 0, 0)}):
+            dmelt = df.melt(id_vars=['fit'])
+            pal = sns.cubehelix_palette(n_fits+3, rot=-.4, start=pcolor, reverse=True)
+            grid = sns.FacetGrid(dmelt, row=row, hue=hue, col=col, aspect=self.fig_scale, height=height, palette=pal, sharex=True, sharey=False)
 
-        grid.map(mykde, 'value')
-        grid.refline(y=0, linewidth=2, linestyle="-", color=None, clip_on=False)
+            grid.map(mykde, 'value')
+            grid.refline(y=0, linewidth=2, linestyle="-", color=None, clip_on=False)
 
-        def label(x, color, label):
-            ax = plt.gca()
-            ax.text(-0.1, 0.1, label, fontweight="bold", color=color,
-                    ha="left", va="center", transform=ax.transAxes)
-        grid.map(label, 'value')
-        grid.figure.subplots_adjust(hspace=-0.75)
-        grid.set_titles("")
-        grid.set(yticks=[], ylabel="")
-        grid.set_xlabels(parameters[0])
-        grid.despine(bottom=True, left=True)
-        plt.style.use(self.style)
+            def label(x, color, label):
+                ax = plt.gca()
+                ax.text(-0.1, 0.1, label, fontweight="bold", color=color,
+                        ha="left", va="center", transform=ax.transAxes)
+            grid.map(label, 'value')
+            grid.figure.subplots_adjust(hspace=-0.75)
+            grid.set_titles("")
+            grid.set(yticks=[], ylabel="")
+            grid.set_xlabels(parameters[0])
+            grid.despine(bottom=True, left=True)
         return grid

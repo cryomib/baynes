@@ -35,10 +35,11 @@ def standard_analysis(
     plotter,
     sampler_kwargs,
     fit_title="fit",
-    rep_key="counts_rep",
-    data_key="counts",
     plot_params="all_stan",
     auto_prior_var="prior",
+    rep_key="counts_rep",
+    data_key="counts",
+    **pcheck_kwargs
 ):
     """
     Perform a standard analysis for Bayesian modeling.
@@ -56,6 +57,7 @@ def standard_analysis(
         data_key (str, optional): Data variable for predictive checks. Default is "counts".
         plot_params (str or list, optional): Parameters to plot. Default is "all_stan".
         auto_prior_var (str, optional): If provided, it specifies the auto-generated prior variable.
+        **pcheck_kwargs: additional keyword arguments or the predictive check plots
 
     Returns:
         fit: The Stan fit object obtained after fitting the model.
@@ -68,7 +70,7 @@ def standard_analysis(
 
         print("\n ---- Prior predictive check ---- \n")
         plotter.add_fit(fit_prior, fit_title=fit_title + "_prior")
-        plotter.predictive_check(rep_key, data=data, data_key=data_key)
+        plotter.predictive_check(rep_key, data=data, data_key=data_key, **pcheck_kwargs)
 
         print("\n ---- Prior distributions ---- \n")
         plotter.dis_plot(plot_params, kind="hist", hue="variable", common_bins=False, element="step", alpha=0.7, lw=1.5)
@@ -86,8 +88,8 @@ def standard_analysis(
     plotter.add_fit(fit, fit_title=fit_title)
     plotter.convergence_plot(parameters=plot_params, initial_steps=100)
 
-    print("\n ---- Prior predictive check ---- \n")
-    plotter.predictive_check(rep_key, data=data, data_key=data_key)
+    print("\n ---- Posterior predictive check ---- \n")
+    plotter.predictive_check(rep_key, data=data, data_key=data_key, **pcheck_kwargs)
 
     print("\n ---- Posterior distributions ---- \n")
     plotter.dis_plot(plot_params, kind="hist", hue="variable", common_bins=False, element="step", alpha=0.7, lw=1.5)
