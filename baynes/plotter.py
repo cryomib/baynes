@@ -1,6 +1,7 @@
 import os
 import pickle
 import numpy as np
+import itertools as it
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -363,8 +364,8 @@ class FitPlotter(MatplotlibHelper):
 
         draws_df = pd.DataFrame([])
         for fit_n in fit_titles:
-            draws_temp = self.fits[fit_n].draws_pd(
-                inc_warmup=inc_warmup)[parameters]
+            draws_temp = self.fits[fit_n].draws_pd(parameters,
+                inc_warmup=inc_warmup)
             draws_temp['fit'] = fit_n
             draws_df = pd.concat([draws_df, draws_temp])
         return draws_df

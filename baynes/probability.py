@@ -82,7 +82,7 @@ def HoSpectrum(
         * spectrum
     )
 
-sdef hdi(samples, prob=0.95):
+def hdi(samples, prob=0.95):
     """
     Calculate the Highest Density Interval (HDI) for a given sample distribution.
 
