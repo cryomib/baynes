@@ -17,8 +17,8 @@
     return full_conv[SHIFT : L - SHIFT + 1];
   }
   
-  vector gaussian_response(vector x, real sigma, int n) {
-    vector[n] y = exp(-0.5 * ((x / sigma) ^ 2));
+  vector gaussian_response(vector x, real FWHM, int n) {
+    vector[n] y = exp(-4 * log(2) * ((x / FWHM) ^ 2));
     return y/sum(y);
   }
   

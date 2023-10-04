@@ -8,49 +8,56 @@ data {
 
   vector[N_bins + 1] x;
   int counts[N_det, N_bins];
-  
-  vector[N_det] N_ev;
+  real m_max;
+  int N_ev[N_det];
   real<lower=0> p_Q;
-  real<lower=0> p_FWHM;
+  real<lower=0> FWHM[N_det];
   int<lower=0, upper=1> prior;
-  real shift;
 }
 
 transformed data {
   real dx = abs(x[2] - x[1]);
-  real p_sigma = p_FWHM / (2 * sqrt(2 * log(2)));
+  real p_sigma = mean(FWHM) / (2 * sqrt(2 * log(2)));
   int N_window = to_int(floor(p_sigma * 5 / dx)) * 2 + 1;
   int N_ext = num_elements(x) + N_window - 1;
 
   vector[N_window] x_window = dx * get_centered_window(N_window);
   vector[N_ext] x_extended = extend_vector(x, dx, N_window);
   vector[N_ext] bare_spectrum = Ho_lorentzians(x_extended);
+  int N_peaks = 6;
+  vector[N_peaks] E_H = tail(to_vector([2047, 1842, 414.2, 333.5, 49.9, 26.3]), N_peaks);
+  vector[N_peaks] gamma_H = head(to_vector([13.2, 6.0, 5.4, 5.3, 3.0, 3.0]), N_peaks);
+  vector[N_peaks] i_H = head(to_vector([1, 0.0526, 0.2329, 0.0119, 0.0345, 0.0015]), N_peaks);
 }
 
 parameters {
-  real<lower=0, upper=1> m_nu_red;
-  real Q[N_det];
-  real<lower=0, upper=1> bkg[N_det];
- // real<lower=0.1, upper=15> sigma;
+  real<lower=0, upper=1> m_red;
+  real z;
+  real<lower=0> E_sigma;
+  vector[N_det] E_syst;
+  real<lower=0, upper=1> f_bkg[N_det];
 }
 
 transformed parameters {
-  real<lower=0, upper=150> m_nu = m_nu_red * 150;
+  real <lower=0> Q = z * 33.54 + p_Q;
+  real<lower=0, upper=m_max> m_nu = m_red * m_max;
+
 }
 
 model {
-  m_nu_red ~ beta(1, 1.05);
- // sigma ~ normal(p_sigma, 0.3);
+  z ~ std_normal();
+  m_red ~ beta(1, 1);
+  E_sigma ~ gamma(8, 1);
+  E_syst ~ normal(0, E_sigma);
 
   for (i in 1:N_det){
-    Q[i] ~ normal(p_Q-shift, 10);
-    bkg[i] ~ beta(2.5, 40);
+    f_bkg[i] ~ beta(1.8, 30);
     if (prior == 0) {
-      counts[i] ~ poisson(spectrum(x_extended, x_window, p_sigma, bkg[i], m_nu, Q[i]+shift, bare_spectrum) * N_ev[i]);
+      counts[i] ~ poisson(spectrum(x_extended - E_syst[i], x_window, FWHM[i], f_bkg[i], m_nu, Q, E_H, gamma_H, i_H) * N_ev[i]);
     }
   }
 }
 
 generated quantities {
-  array[N_bins] int counts_rep = poisson_rng(spectrum(x_extended, x_window, p_sigma, bkg[1], m_nu, Q[1]+shift, bare_spectrum) * N_ev[1]);
+  array[N_bins] int counts1_rep = poisson_rng(spectrum(x_extended - E_syst[1], x_window, FWHM[1], f_bkg[1], m_nu, Q, E_H, gamma_H, i_H) * N_ev[1]);
 }

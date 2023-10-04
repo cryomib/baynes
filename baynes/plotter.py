@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from collections import OrderedDict
+from cmdstanpy import CmdStanMCMC
 
 class MatplotlibHelper:
     def __init__(self, col_wrap=3, fig_scale=5, fig_ratio=1.2, save=False, output_dir='figures/', output_format='.jpeg'):
@@ -220,6 +221,7 @@ class MatplotlibHelper:
             h, l = ax.get_legend_handles_labels()
             handles.extend(h)
             labels.extend(l)
+            ax.legend_.remove()
         for lgd in fig.legends:
             h = lgd.legendHandles
             l = [t.get_text() for t in lgd.get_texts()]
@@ -308,17 +310,18 @@ class FitPlotter(MatplotlibHelper):
             fit_title = 'fit' + str(len(self.fits))
         self.fits[fit_title] = fit
         self.current_fit = fit_title
-        method_variables = list(fit.method_variables().keys())
-        all_variables = [p for p in fit.column_names]
-        if rep_names is None:
-            rep_names = ['_rep']
-        rep_variables = [col for col in all_variables if any(
-            gen in col for gen in rep_names)]
-        stan_variables = [
-            var for var in all_variables if var not in method_variables + rep_variables]
-        self.method_variables = method_variables
-        self.rep_variables = rep_variables
-        self.stan_variables = stan_variables
+        if isinstance(fit, CmdStanMCMC):
+            method_variables = list(fit.method_variables().keys())
+            all_variables = [p for p in fit.column_names]
+            if rep_names is None:
+                rep_names = ['_rep']
+            rep_variables = [col for col in all_variables if any(
+                gen in col for gen in rep_names)]
+            stan_variables = [
+                var for var in all_variables if var not in method_variables + rep_variables]
+            self.method_variables = method_variables
+            self.rep_variables = rep_variables
+            self.stan_variables = stan_variables
 
     def get_fit(self, title=None):
         """
@@ -364,8 +367,12 @@ class FitPlotter(MatplotlibHelper):
 
         draws_df = pd.DataFrame([])
         for fit_n in fit_titles:
-            draws_temp = self.fits[fit_n].draws_pd(parameters,
-                inc_warmup=inc_warmup)
+            curr_fit = self.fits[fit_n]
+            if isinstance(curr_fit, CmdStanMCMC):
+                draws_temp = pd.concat([curr_fit.draws_pd(inc_warmup=inc_warmup).filter(like=par) for par in parameters], axis=1)
+            else:
+                draws_temp = pd.concat([curr_fit.filter(like=par) for par in parameters], axis=1)
+
             draws_temp['fit'] = fit_n
             draws_df = pd.concat([draws_df, draws_temp])
         return draws_df
@@ -422,13 +429,17 @@ class FitPlotter(MatplotlibHelper):
                 subfigs = fig.subfigures(n_rows, n_cols)
                 subfigs = subfigs.flatten()
                 fig.set_size_inches(self.fig_scale*n_cols*2/3, self.fig_scale*n_rows*1.4/3)
-                fig.set_layout_engine('compressed')
+               # fig.set_layout_engine('compressed')
             for i, par in enumerate(parameters):
                 subfig = func(self, par, subfigs[i], **kwargs)
             if legend:
                 handles, labels = subfig.axes[0].get_legend_handles_labels()
-                lgd = fig.legend(handles, labels, bbox_to_anchor=(
-                    1.15, 0.6), facecolor='white', edgecolor='white')
+                if func.__name__=='predictive_check':
+                    lgd = fig.legend(handles, labels, facecolor='white', edgecolor='white',bbox_to_anchor=(
+                    0.9, 0.9))
+                else:
+                    lgd = fig.legend(handles, labels, bbox_to_anchor=(
+                    1.2, 0.6), facecolor='white', edgecolor='white')
                 for line in lgd.get_lines():
                     line.set_linewidth(1.5)
             plt.show()
@@ -473,6 +484,11 @@ class FitPlotter(MatplotlibHelper):
                 draws_df = df
             plot = func(self, draws_df, parameters, **kwargs)
             f = self.new_figure(func.__name__, plot.figure)
+            n_plots = len(parameters)
+            n_cols = min(n_plots, self.col_wrap)
+            n_rows = int(np.ceil(n_plots/n_cols))
+            if n_plots > 1:
+                f.set_size_inches(self.fig_scale*n_cols/2, self.fig_scale*self.fig_ratio*n_rows/2)
             if self.save:
                 plot.figure.savefig(
                     f"{self.output_dir}{self.current_title}{self.format}", bbox_inches='tight')
@@ -532,19 +548,20 @@ class FitPlotter(MatplotlibHelper):
         if n_bins is not None:
             events, bins = np.histogram(events, bins=n_bins)
             draws = np.array([np.histogram(dr, bins=bins)[0] for dr in draws])
-
+        std = np.nanstd(draws, axis=0)
         if lines:
             for i in range(min(80, len(draws))):
                 if i==0:
-                    ax.plot(draws[i], color=color, linewidth=0.2, alpha=0.2, label='replicated')
+                    ax.plot(draws[i], color=color, linewidth=0.4, alpha=0.4, label='replicated')
                 else:
-                    ax.plot(draws[i], color=color, linewidth=0.2, alpha=0.2)
-                ax1.plot((draws[i]-events)/np.sqrt(events), color=color, linewidth=0.2, alpha=0.2)
+                    ax.plot(draws[i], color=color, linewidth=0.4, alpha=0.4)
+                ax1.plot((draws[i]-events), color=color, linewidth=0.4, alpha=0.4)
         else:
             lo, hi = np.nanpercentile(draws, percs, axis=0)
+
             ax.fill_between(np.arange(len(events)), lo, hi,
                             color=color, alpha=0.4, label='replicated')
-            ax1.fill_between(np.arange(len(events)), (lo-events)/np.sqrt(events), (hi-events)/np.sqrt(events),
+            ax1.fill_between(np.arange(len(events)), (lo-events), (hi-events),
                         color=color, alpha=0.4)
         ax.plot(events, color='black', linewidth=2, label='observed', linestyle='-')
         ax1.plot(np.zeros(len(events)), color='black', linewidth=1.5, linestyle='--')
@@ -577,11 +594,12 @@ class FitPlotter(MatplotlibHelper):
             grid: The Seaborn PairGrid object containing the pair plot grid.
         """
         grid = sns.PairGrid(df, hue=hue, height=height, corner=corner)
-        grid.map_offdiag(sns.scatterplot, s=s, **kwargs)
+        grid.map_lower(sns.scatterplot, s=s, **kwargs)
+        grid.map_upper(sns.kdeplot)
+
         grid.map_diag(sns.histplot, bins=20)
         if legend:
             grid.add_legend(label_order= grid.hue_names, title='',bbox_to_anchor=(0.9, 0.6))
-
         return grid
 
     @multi_fit_plot

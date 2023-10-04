@@ -253,4 +253,4 @@ class SpectraSampler:
         """
         ev_in_ROI = self.pdf_norm * n_det * self.dE
         self.n_events = int(np.floor(n_days * ev_in_ROI))
-        print('Number of events in ROI: ', self.n_events)
+        print('Expected number of events in ROI: ', self.n_events)
