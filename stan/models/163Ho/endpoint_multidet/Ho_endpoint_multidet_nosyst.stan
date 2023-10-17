@@ -11,6 +11,8 @@ data {
   int counts[N_det, N_bins];
   real m_max;
   int N_ev[N_det];
+  real E_syst[N_det];
+
   real<lower=0> p_Q;
   real<lower=0> FWHM[N_det];
   int<lower=0, upper=1> prior;
@@ -35,8 +37,6 @@ parameters {
   real<lower=0, upper=1> m_red;
   real z;
   vector[N_det] xz;
-  real<lower=0> E_sigma;
-  vector[N_det] E_syst;
   real<lower=0, upper=1> f_bkg[N_det];
 }
 
@@ -49,8 +49,6 @@ transformed parameters {
 model {
   z~std_normal();
   m_red ~ beta(1, 1);
-  E_sigma ~ gamma(12, 2);
-  E_syst ~ normal(0, E_sigma);
   f_bkg ~ beta(1.8, 30);
   xz ~ std_normal();
   for (i in 1:N_det){

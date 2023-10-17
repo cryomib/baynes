@@ -37,4 +37,8 @@ model {
 }
 generated quantities {
   array[N] int<lower=0> y_rep = poisson_log_rng(f + a);
+  vector[N] log_lik;
+  for (n in 1:N) {
+    log_lik[n] = poisson_log_lpmf(y[n] | f[n] + a);
+  }
 }

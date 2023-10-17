@@ -221,7 +221,8 @@ class MatplotlibHelper:
             h, l = ax.get_legend_handles_labels()
             handles.extend(h)
             labels.extend(l)
-            ax.legend_.remove()
+            if ax.legend_ is not None:
+                ax.legend_.remove()
         for lgd in fig.legends:
             h = lgd.legendHandles
             l = [t.get_text() for t in lgd.get_texts()]
@@ -369,10 +370,11 @@ class FitPlotter(MatplotlibHelper):
         for fit_n in fit_titles:
             curr_fit = self.fits[fit_n]
             if isinstance(curr_fit, CmdStanMCMC):
-                draws_temp = pd.concat([curr_fit.draws_pd(inc_warmup=inc_warmup).filter(like=par) for par in parameters], axis=1)
+                draws_temp = curr_fit.draws_pd(inc_warmup=inc_warmup)[parameters]
+                #draws_temp = pd.concat([curr_fit.draws_pd(inc_warmup=inc_warmup).filter(like=par) for par in parameters], axis=1)
             else:
-                draws_temp = pd.concat([curr_fit.filter(like=par) for par in parameters], axis=1)
-
+               # draws_temp = pd.concat([curr_fit.filter(like=par) for par in parameters], axis=1)
+                draws_temp = curr_fit[parameters]
             draws_temp['fit'] = fit_n
             draws_df = pd.concat([draws_df, draws_temp])
         return draws_df
@@ -392,6 +394,14 @@ class FitPlotter(MatplotlibHelper):
                 params = self.stan_variables
             else:
                 params = [params]
+        else:
+            all_pars=self.stan_variables+self.rep_variables
+            validated = []
+            for p in params:
+                if p in all_pars:
+                    validated.append(p)
+                validated = validated + [par for par in all_pars if p+'[' in par]
+            params=validated
         return params
 
     @staticmethod
@@ -424,11 +434,11 @@ class FitPlotter(MatplotlibHelper):
             fig = self.new_figure(func.__name__)
             if n_plots == 1:
                 subfigs = np.array([fig])
-                fig.set_size_inches(self.fig_scale*1.2, self.fig_scale)
+                fig.set_size_inches(self.fig_scale*self.fig_ratio, self.fig_scale)
             else:
                 subfigs = fig.subfigures(n_rows, n_cols)
                 subfigs = subfigs.flatten()
-                fig.set_size_inches(self.fig_scale*n_cols*2/3, self.fig_scale*n_rows*1.4/3)
+                fig.set_size_inches(self.fig_scale*n_cols*self.fig_ratio, self.fig_scale*n_rows)
                # fig.set_layout_engine('compressed')
             for i, par in enumerate(parameters):
                 subfig = func(self, par, subfigs[i], **kwargs)
@@ -488,7 +498,7 @@ class FitPlotter(MatplotlibHelper):
             n_cols = min(n_plots, self.col_wrap)
             n_rows = int(np.ceil(n_plots/n_cols))
             if n_plots > 1:
-                f.set_size_inches(self.fig_scale*n_cols/2, self.fig_scale*self.fig_ratio*n_rows/2)
+                f.set_size_inches(self.fig_scale*self.fig_ratio, self.fig_scale)
             if self.save:
                 plot.figure.savefig(
                     f"{self.output_dir}{self.current_title}{self.format}", bbox_inches='tight')
@@ -622,14 +632,14 @@ class FitPlotter(MatplotlibHelper):
         """
         dmelt = df.melt(id_vars=['fit'])
         displot = sns.displot(data=dmelt, x='value', legend=legend, facet_kws=facet_kws,
-                              kind=kind, hue=hue, col=col, col_wrap=min(len(parameters), self.col_wrap), height=self.fig_scale/1.5, **kwargs)
+                              kind=kind, hue=hue, col=col, col_wrap=min(len(parameters), self.col_wrap), height=self.fig_scale, **kwargs)
         for i, ax in enumerate(displot.axes.flatten()):
             ax.set_xlabel(parameters[i])
         displot.set_titles("")
         return displot
     
     @multi_fit_plot
-    def cat_plot(self, df, parameters, id_vars=['fit'], x='value', y='fit', legend = True, sharex = False, kind = 'box', hue=None, col = 'variable', **kwargs):
+    def cat_plot(self, df, parameters, id_vars=['fit'], x='value', y='fit', legend = True, sharex = False, kind = 'box', hue='fit', col = 'variable', **kwargs):
         """
         Generate a categorical plot for multiple fits.
 
@@ -651,7 +661,7 @@ class FitPlotter(MatplotlibHelper):
         """
         dmelt = df.melt(id_vars=id_vars)
         catplot = sns.catplot(data=dmelt, legend = legend, sharex = sharex, x=x, y=y,
-                              kind = kind, hue=hue, col = col, col_wrap=min(len(parameters), self.col_wrap), height=self.fig_scale/1.5, **kwargs)
+                              kind = kind, hue=hue, col = col, col_wrap=min(len(parameters), self.col_wrap), height=self.fig_scale, **kwargs)
         catplot.set_titles("")
         for i, ax in enumerate(catplot.axes.flatten()):
             ax.set_xlabel(parameters[i])

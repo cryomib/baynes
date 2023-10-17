@@ -1,6 +1,7 @@
 import pickle
 import json
 import os
+import numpy as np
 from multiprocessing.dummy import Pool
 import itertools as it
 import pandas as pd
@@ -84,6 +85,8 @@ def standard_analysis(
                 model, fit_prior, sampler_kwargs["chains"])
         plt.show()
         data[auto_prior_var] = 0
+    else:
+        fit_prior = None
 
     sampler_kwargs["show_progress"] = True
     print("\n ---- Fitting the model ---- \n")
@@ -127,18 +130,18 @@ def sensitivity_sweep(model, data, data_sweep, parameters, n_processes=8, sample
     return pd.concat(multithreaded_run(sample, all_data, n_processes=n_processes))
 
 def save_analysis(dir_path, data=None, prior=None, posterior=None):
-    if not os.path.isdir(path):
-        raise ValueError(f"Path {path} does not exist.")
+    if not os.path.isdir(dir_path):
+        raise ValueError(f"Path {dir_path} does not exist.")
     if data is not None:
         dict_to_json(data, os.path.join(dir_path, 'data.json'))
     if prior is not None:
         prior_dir = os.path.join(dir_path, 'prior')
-        os.makedirs(prior_path)
+        os.makedirs(prior_dir, exist_ok=True)
         prior.save_csvfiles(prior_dir)
     if posterior is not None:
         posterior_dir = os.path.join(dir_path, 'posterior')
-        os.makedirs(posterior_path)
-        prior.save_csvfiles(posterior_dir)
+        os.makedirs(posterior_dir, exist_ok=True)
+        posterior.save_csvfiles(posterior_dir)
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -148,7 +151,7 @@ class NumpyEncoder(json.JSONEncoder):
             return float(obj)
         if isinstance(obj, np.ndarray):
             return obj.tolist()
-        return super(NpEncoder, self).default(obj)
+        return super(NumpyEncoder, self).default(obj)
 
 def dict_to_json(dd, file_path):
     with open(file_path, 'w') as json_file:

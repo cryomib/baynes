@@ -202,7 +202,7 @@ class SpectraSampler:
         ax.set_ylabel('Prob(E)')
         return ax     
 
-    def plot_spectrum(self, ax=None, scale='log'):
+    def plot_spectrum(self, ax=None, scale='log', lw=1.5, **kwargs):
         """
         Plot the energy spectrum.
 
@@ -218,9 +218,9 @@ class SpectraSampler:
             fig, ax = plt.subplots()
         ax.set_yscale(scale)
         ax.axvspan(*self.ROI, alpha=0.4, color='grey', label='ROI')
-        ax.plot(x, self.full_spectrum, label='total', lw=1.5)
+        ax.plot(x, self.full_spectrum, label='total', lw=lw, **kwargs, zorder=10)
         for key, partial_sp in self.spectrum.items():
-            ax.plot(x, partial_sp[:len(x)], label=key, ls='--', lw=0.7)
+            ax.plot(x, partial_sp[:len(x)], label=key, ls='--', lw=lw*0.7)
         ax.legend(bbox_to_anchor=(1.05, 0.6))
         ax.set_xlabel('E [eV]')
         ax.set_ylabel('counts [$eV^{-1}day^{-1}det^{-1}$]')

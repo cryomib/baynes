@@ -11,8 +11,11 @@ data {
   int counts[N_det, N_bins];
   real m_max;
   int N_ev[N_det];
+  real E_syst[N_det];
+
   real<lower=0> p_Q;
   real<lower=0> FWHM[N_det];
+  real<lower=0, upper=1> f_bkg[N_det];
   int<lower=0, upper=1> prior;
 }
 
@@ -35,33 +38,29 @@ parameters {
   real<lower=0, upper=1> m_red;
   real z;
   vector[N_det] xz;
-  real<lower=0> E_sigma;
-  vector[N_det] E_syst;
-  real<lower=0, upper=1> f_bkg[N_det];
+//  real<lower=0, upper=1> f_bkg[N_det];
 }
 
 transformed parameters {
   real <lower=0> Q = z * 33.54 + p_Q;
   real<lower=0, upper=m_max> m_nu = m_red * m_max;
-  vector[N_det] A = 0.05 * xz + 1;
+  vector[N_det] A = 0.15 * xz + 1;
 }
 
 model {
   z~std_normal();
   m_red ~ beta(1, 1);
-  E_sigma ~ gamma(12, 2);
-  E_syst ~ normal(0, E_sigma);
-  f_bkg ~ beta(1.8, 30);
+ // f_bkg ~ beta(1.8, 30);
   xz ~ std_normal();
   for (i in 1:N_det){
   //  f_bkg[i] ~ beta(1.8, 30);
    // xz[i] ~ std_normal();
     if (prior == 0) {
-      counts[i] ~ poisson(spectrum(x_extended - E_syst[i], x_window, FWHM[i], f_bkg[i], m_nu, Q, E_H, gamma_H, i_H) *A[i]* N_ev[i]);
+      counts[i] ~ poisson(spectrum(x_extended - E_syst[i], x_window, FWHM[i], f_bkg[i], m_red, Q, E_H, gamma_H, i_H) *A[i]* N_ev[i]);
     }
   }
 }
 
 generated quantities {
-  array[N_bins] int counts1_rep = poisson_rng(spectrum(x_extended - E_syst[1], x_window, FWHM[1], f_bkg[1], m_nu, Q, E_H, gamma_H, i_H) *A[1]* N_ev[1]);
+  array[N_bins] int counts1_rep = poisson_rng(spectrum(x_extended - E_syst[1], x_window, FWHM[1], f_bkg[1], m_red, Q, E_H, gamma_H, i_H) *A[1]* N_ev[1]);
 }

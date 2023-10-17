@@ -1,9 +1,12 @@
 import glob
 import json
 import os
-import baynes
+
 import numpy as np
 from cmdstanpy import CmdStanModel
+
+import baynes
+
 
 def _get_config_file():
     """
@@ -13,7 +16,7 @@ def _get_config_file():
         str: The path to the configuration file.
     """
     baynes_path = os.path.dirname(baynes.__file__)
-    config_file = os.path.join(baynes_path, 'config.json')
+    config_file = os.path.join(baynes_path, "config.json")
     if not os.path.isfile(config_file):
         raise ValueError("No config.json file found for Baynes")
     return config_file
@@ -30,12 +33,12 @@ def set_models_path(path: str) -> None:
         raise ValueError(f"No CmdStan directory, path {path} does not exist.")
 
     cfile = _get_config_file()
-    with open(cfile, 'r') as f:
+    with open(cfile, "r") as f:
         config = json.load(f)
 
-    config['STAN_MODELS_DIR'] = path
+    config["STAN_MODELS_DIR"] = path
 
-    with open(cfile, 'w') as f:
+    with open(cfile, "w") as f:
         json.dump(config, f, indent=4)
 
 
@@ -46,7 +49,7 @@ def get_models_path() -> str:
     Returns:
         str: The directory path to the Stan models.
     """
-    with open(_get_config_file(), 'r') as f:
+    with open(_get_config_file(), "r") as f:
         config = json.load(f)
     models_dir = ""
     if "STAN_MODELS_DIR" in config.keys() and len(config["STAN_MODELS_DIR"]) > 0:
@@ -68,12 +71,12 @@ def set_compiler_kwargs(compiler_kwargs: dict) -> None:
         compiler_kwargs (dict): Dictionary containing compiler kwargs.
     """
     cfile = _get_config_file()
-    with open(cfile, 'r') as f:
+    with open(cfile, "r") as f:
         config = json.load(f)
 
-    config['STAN_COMPILER_KWARGS'] = compiler_kwargs
+    config["STAN_COMPILER_KWARGS"] = compiler_kwargs
 
-    with open(cfile, 'w') as f:
+    with open(cfile, "w") as f:
         json.dump(config, f, indent=4)
 
 
@@ -84,9 +87,9 @@ def get_compiler_kwargs() -> dict:
     Returns:
         dict: Dictionary containing compiler kwargs.
     """
-    with open(_get_config_file(), 'r') as f:
+    with open(_get_config_file(), "r") as f:
         config = json.load(f)
-    return config['STAN_COMPILER_KWARGS']
+    return config["STAN_COMPILER_KWARGS"]
 
 
 def get_stan_file(stan_file: str) -> str or None:
@@ -99,6 +102,9 @@ def get_stan_file(stan_file: str) -> str or None:
     Returns:
         str or None: The path to the .stan file or None if not found.
     """
+
+    if not stan_file.endswith(".stan"):
+        stan_file += ".stan"
     models_path = get_models_path()
     files = glob.glob(get_models_path() + "/**/" + stan_file, recursive=True)
     if len(files) == 0:
@@ -111,6 +117,19 @@ def get_stan_file(stan_file: str) -> str or None:
     else:
         print("Found .stan file ", files[0])
         return files[0]
+
+
+def get_model(stan_file: str) -> CmdStanModel or None:
+    """
+    Return a stan file model the models directory path, compiling with default arguments
+
+    Parameters:
+        stan_file (str): The name of the .stan file to find.
+
+    Returns:
+        CmdstanModel or None: The model corresponding to the .stan file or None if not found.
+    """
+    return CmdStanModel(stan_file=get_stan_file(stan_file), **get_compiler_kwargs())
 
 
 def select_from_list(options):

@@ -40,7 +40,15 @@ model {
 generated quantities {
   vector[N2] f2;
   vector[N2] y2;
-  
+  vector[N1] log_lik;
+  {
+    vector[N1] f1;
+    f1 = gp_pred_quad_rng(x1, y1, x1, alpha, rho, sigma, delta);
+
+    for (n in 1:N1) {
+    log_lik[n] = normal_lpdf(y1[n] | f1[n], sigma);
+    }
+  }
   f2 = gp_pred_quad_rng(x2, y1, x1, alpha, rho, sigma, delta);
   for (n2 in 1 : N2) {
     y2[n2] = normal_rng(f2[n2], sigma);

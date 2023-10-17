@@ -12,20 +12,15 @@ data {
 }
 
 transformed data {
-  real dx = abs(x[2] - x[1]);
-  real p_sigma = p_FWHM / (2 * sqrt(2 * log(2)));
-  int N_window = to_int(floor(p_sigma * 5 / dx)) * 2 + 1;
-  int N_ext = num_elements(x) + N_window - 1;
 
-  vector[N_window] window_x = dx * get_centered_window(N_window);
-  vector[N_ext] extended_x = extend_vector(x, dx, N_window);
+  real p_sigma = (p_FWHM) / (2 * sqrt(2 * log(2)));
+  #include Ho_transformed_data.stan
+
   vector[N_ext] bare_spectrum = Ho_lorentzians(extended_x);
-
   real<lower=0, upper=m_max> m_nu_sim = beta_rng(1, 1)*m_max;
   real<lower=0> Q_sim = normal_rng(p_Q, 33.54);
   real<lower=0, upper=1> f_bkg_sim = beta_rng(1.8, 30);
   real<lower=0.1, upper=15> FWHM_sim = normal_rng(p_FWHM, 1); 
-
   array[N_bins] int counts = poisson_rng(spectrum(extended_x-m_nu_sim+50, window_x, FWHM_sim, f_bkg_sim, m_nu_sim, Q_sim, bare_spectrum) * N_ev);
 
 }
