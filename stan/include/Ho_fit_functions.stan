@@ -1,5 +1,3 @@
-  //#include convolution_functions.stan
-
   // First order 163Ho EC decay spectrum
   vector Ho_first_order(vector E, real m_nu, real Q_H, vector E_H, vector gamma_H, vector i_H){
     int N = num_elements(E);
@@ -42,7 +40,7 @@
 
 
 
-  // 163Ho pileup spectrum 
+  // 163Ho pileup spectrum
   vector Ho_pileup(data vector x, data real dx, real m_nu, real Q_H, vector E_H, vector gamma_H, vector i_H){
     int N = num_elements(x);
     int N_ext = to_int(floor(x[N]/dx))+1;
@@ -63,7 +61,7 @@
       vector[Nwx] y_spread = gaussian_response(x_window, FWHM, Nwx);
       vector[Ny - Nwx + 1] y_obs = fft_convolve(y_full, y_spread);
       return y_obs / sum(y_obs);
-    }  
+    }
   }
 
   // Fixed bare spectrum (without phase space), no background
@@ -147,7 +145,7 @@
       return y_obs / sum(y_obs);
     }
   }
-  
+
   // compute full spectrum, flat background and fixed pileup spectrum
   vector spectrum(vector x_full, vector x_window, real FWHM, real p_bkg, real p_pu, vector pu_spectrum, real m_nu, real Q_H, vector E_H, vector gamma_H, vector i_H){
     int Nx = num_elements(x_full);

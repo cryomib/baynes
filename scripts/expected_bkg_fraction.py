@@ -18,7 +18,7 @@ def main(A_Ho, R_t, L_t, bkg, ROI, m_nu, Q):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute the expected backround and pileup fraction in the ROI.")
     parser.add_argument("--A_Ho", type=float, default=1, help="Activity in the pixel")
-    parser.add_argument("--R_t", type=float, default=3e-6, help="Time resolution")
+    parser.add_argument("--R_t", type=float, default=2e-6, help="Time resolution")
     parser.add_argument("--L_t", type=float, default=4e-3, help="Lenght of recorded signal")
     parser.add_argument("--bkg", type=float, default=1e-4, help="Rate of flat background")
     parser.add_argument("--ROI", type=float, nargs=2, default=[2650, 2900], help="Energy range of interest as list of float")

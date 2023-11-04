@@ -1,5 +1,6 @@
-import numpy as np
 import numbers
+import numpy as np
+
 
 def lorentzian(E, E0, gamma):
     """
@@ -16,6 +17,7 @@ def lorentzian(E, E0, gamma):
     E = np.asarray(E)
     gamma_2 = gamma / 2
     return 1 / np.pi * gamma_2 / ((E - E0) ** 2 + gamma_2**2)
+
 
 def lorentzian_asymm(E, E0, gamma, asymm):
     """
@@ -35,23 +37,27 @@ def lorentzian_asymm(E, E0, gamma, asymm):
     gamma_R = (1 + asymm) * gamma_2
 
     if not isinstance(E, np.ndarray):
-        E = np.array([E])  # Convert scalar input to 1-element ndarray
+        E = np.array([E])
 
-    y = np.where(E < E0, gamma_L**2 / ((E - E0)**2 + gamma_L**2),
-                         gamma_R**2 / ((E - E0)**2 + gamma_R**2))
+    y = np.where(
+        E < E0,
+        gamma_L**2 / ((E - E0) ** 2 + gamma_L**2),
+        gamma_R**2 / ((E - E0) ** 2 + gamma_R**2),
+    )
 
-    norm1 = 1. / (np.pi * gamma_L * 2)
-    norm2 = 1. / (np.pi * gamma_R * 2)
+    norm1 = 1.0 / (np.pi * gamma_L * 2)
+    norm2 = 1.0 / (np.pi * gamma_R * 2)
     y = y * (norm1 + norm2)
 
     if len(y) == 1:
-        return float(y[0])  # Return float for scalar input
+        return float(y[0])
     return y
+
 
 def HoSpectrum(
     E,
     m_nu,
-    Q_H=2838,
+    Q_H=2833,
     E_H=[2047, 1842, 414.2, 333.5, 49.9, 26.3],
     gamma_H=[13.2, 6.0, 5.4, 5.3, 3.0, 3.0],
     i_H=[1, 0.0526, 0.2329, 0.0119, 0.0345, 0.0015],
@@ -81,6 +87,7 @@ def HoSpectrum(
         * np.sqrt(np.clip((Q_H - E) ** 2 - m_nu**2, 0, None))
         * spectrum
     )
+
 
 def hdi(samples, prob=0.95):
     """

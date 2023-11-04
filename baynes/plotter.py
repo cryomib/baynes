@@ -206,7 +206,7 @@ class MatplotlibHelper:
         return fig
 
     @modify_figure
-    def update_legend(self, last_labels=None, **lgd_kws):
+    def update_legend(self, last_labels=None, edgecolor='white', bbox_to_anchor=(1.2, 0.8), **lgd_kws):
         """
         Update the legend of the current figure. Allows to change the position of labels and combine legends from different subplots
 
@@ -218,22 +218,23 @@ class MatplotlibHelper:
         fig = self.get_current_figure()
         handles, labels = [], []
         for ax in fig.axes:
-            h, l = ax.get_legend_handles_labels()
-            handles.extend(h)
-            labels.extend(l)
+            han, lab = ax.get_legend_handles_labels()
+            handles.extend(han)
+            labels.extend(lab)
             if ax.legend_ is not None:
                 ax.legend_.remove()
         for lgd in fig.legends:
-            h = lgd.legendHandles
-            l = [t.get_text() for t in lgd.get_texts()]
-            handles.extend(h)
-            labels.extend(l)
+            han = lgd.legendHandles
+            lab = [t.get_text() for t in lgd.get_texts()]
+            handles.extend(han)
+            labels.extend(lab)
             lgd.remove()
         by_label = OrderedDict(zip(labels, handles))
         if last_labels is not None:
-            for l in last_labels:
-                by_label.move_to_end(l)
-        fig.legend(by_label.values(), by_label.keys(), **lgd_kws)
+            for lab in last_labels:
+                by_label.move_to_end(lab)
+        fig.legend(by_label.values(), by_label.keys(), edgecolor=edgecolor,
+                   bbox_to_anchor=bbox_to_anchor, **lgd_kws)
         return fig
 
     @modify_figure
@@ -371,9 +372,7 @@ class FitPlotter(MatplotlibHelper):
             curr_fit = self.fits[fit_n]
             if isinstance(curr_fit, CmdStanMCMC):
                 draws_temp = curr_fit.draws_pd(inc_warmup=inc_warmup)[parameters]
-                #draws_temp = pd.concat([curr_fit.draws_pd(inc_warmup=inc_warmup).filter(like=par) for par in parameters], axis=1)
             else:
-               # draws_temp = pd.concat([curr_fit.filter(like=par) for par in parameters], axis=1)
                 draws_temp = curr_fit[parameters]
             draws_temp['fit'] = fit_n
             draws_df = pd.concat([draws_df, draws_temp])
@@ -406,15 +405,6 @@ class FitPlotter(MatplotlibHelper):
 
     @staticmethod
     def single_fit_plot(func):
-        """
-        Decorator for generating single-fit plots.
-
-        Parameters:
-            func: The plotting function to be decorated.
-
-        Returns:
-            The decorated function for single-fit plots.
-        """
         def wrapper(self, parameters='all_stan', legend=True, **kwargs):
             """
             Wrapper for the plotting function with single-fit capability.
@@ -461,15 +451,6 @@ class FitPlotter(MatplotlibHelper):
 
     @staticmethod
     def multi_fit_plot(func):
-        """
-        Decorator for generating multi-fit plots.
-
-        Parameters:
-            func: The plotting function to be decorated.
-
-        Returns:
-            The decorated function for multi-fit plots.
-        """
         def wrapper(self, parameters='all_stan', fit_titles=None, inc_warmup=False, df=None, **kwargs):
             """
             Wrapper for the plotting function with multi-fit capability.
@@ -494,11 +475,19 @@ class FitPlotter(MatplotlibHelper):
                 draws_df = df
             plot = func(self, draws_df, parameters, **kwargs)
             f = self.new_figure(func.__name__, plot.figure)
-            n_plots = len(parameters)
-            n_cols = min(n_plots, self.col_wrap)
-            n_rows = int(np.ceil(n_plots/n_cols))
-            if n_plots > 1:
-                f.set_size_inches(self.fig_scale*self.fig_ratio, self.fig_scale)
+            f.set_layout_engine('compressed')
+
+            if func.__name__ != 'pair_grid':
+                n_plots = len(parameters)
+                n_cols = min(n_plots, self.col_wrap)
+                n_rows = int(np.ceil(n_plots/n_cols))
+
+                norm = np.sqrt(2 /(n_rows+n_cols))
+                if n_plots > 1:
+                    f.set_size_inches(self.fig_scale*self.fig_ratio*n_cols*norm , self.fig_scale*n_rows*norm)
+            else:
+                f.set_size_inches(self.fig_scale*(len(parameters))**0.3 , self.fig_scale*(len(parameters))**0.3)
+
             if self.save:
                 plot.figure.savefig(
                     f"{self.output_dir}{self.current_title}{self.format}", bbox_inches='tight')
@@ -534,7 +523,7 @@ class FitPlotter(MatplotlibHelper):
         return figure
 
     @single_fit_plot
-    def predictive_check(self, rep_key, figure, data=None, data_key=None, fit_name=None, percs=[5, 95], color='green', lines = False, n_bins=None):    
+    def predictive_check(self, rep_key, figure, data=None, data_key=None, fit_name=None, percs=[5, 95], color='green', lines = False, n_bins=None):
         """
         Generate a predictive check plot for a single fit.
 
@@ -576,11 +565,11 @@ class FitPlotter(MatplotlibHelper):
         ax.plot(events, color='black', linewidth=2, label='observed', linestyle='-')
         ax1.plot(np.zeros(len(events)), color='black', linewidth=1.5, linestyle='--')
         if n_bins is not None:
-            ax.set_ylabel('counts')    
-            ax1.set_xlabel(data_key)         
+            ax.set_ylabel('counts')
+            ax1.set_xlabel(data_key)
         else:
-            ax.set_ylabel(data_key)    
-            ax1.set_xlabel('bin')  
+            ax.set_ylabel(data_key)
+            ax1.set_xlabel('bin')
         ax1.set_ylabel('residuals')
 
         return figure
@@ -637,7 +626,7 @@ class FitPlotter(MatplotlibHelper):
             ax.set_xlabel(parameters[i])
         displot.set_titles("")
         return displot
-    
+
     @multi_fit_plot
     def cat_plot(self, df, parameters, id_vars=['fit'], x='value', y='fit', legend = True, sharex = False, kind = 'box', hue='fit', col = 'variable', **kwargs):
         """
@@ -668,9 +657,9 @@ class FitPlotter(MatplotlibHelper):
             ax.set_ylabel('')
 
         return catplot
-    
+
     @multi_fit_plot
-    def kde_plot(self, df, parameters, hue='fit', **kwargs):
+    def kde_plot(self, df, parameters, hue='fit', col='variable', **kwargs):
         """
         Generate a KDE (Kernel Density Estimation) plot for multiple fits.
 
@@ -696,10 +685,10 @@ class FitPlotter(MatplotlibHelper):
             ax.fill_between(x_data, 0, y_data, where=(left <=x_data) & (x_data <= right), interpolate=False, color=color, alpha=0.5, lw=.2)
             return ax
 
-        dmelt = df.melt(id_vars=['fit'])        
-        kdegrid = sns.FacetGrid(dmelt, col='variable', hue=hue, col_wrap=min(len(parameters), self.col_wrap), sharey=False, sharex=False, height=self.fig_scale)
+        dmelt = df.melt(id_vars=['fit'])
+        kdegrid = sns.FacetGrid(dmelt, col=col, hue=hue, col_wrap=min(len(parameters), self.col_wrap), sharey=False, sharex=False, height=self.fig_scale)
         kdegrid.map(informative_kde, 'value', **kwargs)
-        kdegrid.add_legend(label_order= kdegrid.hue_names + ['median'], title='',bbox_to_anchor=(1.05, 0.5))
+        kdegrid.add_legend(label_order= kdegrid.hue_names + ['median'], title='',bbox_to_anchor=(1.2, 0.5))
         kdegrid.set_titles("")
         for i, ax in enumerate(kdegrid.axes.flatten()):
             ax.set_xlabel(parameters[i])

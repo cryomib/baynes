@@ -1,12 +1,12 @@
 data {
-  int<lower=0> N;       // number of cases
-  vector[N] x;          // predictor (covariate)
-  vector[N] y;          // outcome (variate)
+  int<lower=0> N;
+  vector[N] x;
+  vector[N] y;
   int<lower=0, upper=1> prior;
 }
 parameters {
-  real beta;            // slope
-  real<lower=0> sigma;  // outcome noise
+  real beta;
+  real<lower=0> sigma;
 }
 model {
   beta ~ normal(0, 10);

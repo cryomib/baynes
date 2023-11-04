@@ -18,7 +18,6 @@ transformed parameters {
   {
     matrix[N, N] L_K;
     matrix[N, N] K = gp_exp_quad_cov(x, alpha, rho);
-    // diagonal elements
     for (n in 1 : N) {
       K[n, n] = K[n, n] + delta;
     }

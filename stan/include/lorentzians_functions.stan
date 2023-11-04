@@ -1,9 +1,6 @@
-  // asymmetric lorentzian
-
   vector lorentzian(vector E, real E0, real gamma){
     return gamma/2*pi() * 1./((E-E0)^2 + (gamma/2)^2);
   }
-
 
   vector lorentzian_asymm(vector E, real E0, real FWHM, real asymm) {
     real gamma_2 = FWHM / 2.0;
@@ -25,6 +22,11 @@
     return y *(norm1+norm2)/ pi();
   }
 
+  vector sigmoid(vector x, real a, real b, real gamma){
+    return 2*gamma/(1+exp(-a*(x-b)));
+  }
+
+
   vector lorentzian_xps(vector E, real E0, real FWHM, real a, real b){
     int N = num_elements(E);
     vector[N] x = E-E0;
@@ -32,20 +34,14 @@
     return 1/pi() * sigmoid_2./(sigmoid_2^2+x^2);
   }
 
-  vector sigmoid(vector x, real a, real b, real gamma){
-    return 2*gamma/(1+exp(-a*(x-b)));
-  }
-
-
-
 vector lorentzians(vector E, vector E0s, vector gammas, vector is){
     int N = num_elements(E);
     int N_peaks = num_elements(E0s);
-      vector[N] lorentzians = rep_vector(0, N);
+      vector[N] lors = rep_vector(0, N);
     for (i in 1 : N){
-      lorentzians[i] = dot_product(is, gammas./((E[i] - E0s) ^ 2 + (gammas/2) ^ 2));
+      lors[i] = dot_product(is, gammas./((E[i] - E0s) ^ 2 + (gammas/2) ^ 2));
     }
-    return lorentzians;
+    return lors;
   }
 
   vector spectrum(vector x_full, vector x_window, real sigma, real bkg, vector E0s, vector gammas, vector is){

@@ -1,7 +1,7 @@
 data {
-  int<lower=0> N;       // number of cases
-  vector[N] x;          // predictor (covariate)
-  vector[N] y;          // outcome (variate)
+  int<lower=0> N;
+  vector[N] x;          // predictor
+  vector[N] y;          // outcome
   int<lower=0, upper=1> prior;
 }
 parameters {

@@ -1,14 +1,18 @@
-import pickle
-import json
-import os
-import numpy as np
-from multiprocessing.dummy import Pool
 import itertools as it
-import pandas as pd
+import json
+import multiprocessing
+import os
+import pickle
+from multiprocessing.dummy import Pool
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
 from baynes.model_utils import inits_from_priors
 
-def multithreaded_run(function, args, n_processes, filename=None):
+
+def multithreaded_run(function, args, n_processes="max", filename=None):
     """
     Run the given function in parallel using multiple threads.
 
@@ -21,6 +25,12 @@ def multithreaded_run(function, args, n_processes, filename=None):
     Returns:
         list: List containing the results of function calls for each input argument.
     """
+    if n_processes == "max":
+        num_cores = multiprocessing.cpu_count()
+        try:
+            n_processes = os.sysconf("SC_NPROCESSORS_ONLN")
+        except ValueError:
+            n_processes = num_cores
     pool = Pool(processes=n_processes)
     results = pool.map(function, args)
     if filename is not None:
@@ -34,6 +44,7 @@ def multithreaded_run(function, args, n_processes, filename=None):
 
     return results
 
+
 def standard_analysis(
     model,
     data,
@@ -45,7 +56,7 @@ def standard_analysis(
     auto_prior_var="prior",
     rep_key="counts_rep",
     data_key="counts",
-    **pcheck_kwargs
+    **pcheck_kwargs,
 ):
     """
     Perform a standard analysis for Bayesian modeling.
@@ -79,10 +90,19 @@ def standard_analysis(
         plotter.predictive_check(rep_key, data=data, data_key=data_key, **pcheck_kwargs)
 
         print("\n ---- Prior distributions ---- \n")
-        plotter.dis_plot(plot_params, kind="hist", hue="variable", common_bins=False, element="step", alpha=0.7, lw=1.5)
-        if 'inits' not in sampler_kwargs.keys():
+        plotter.dis_plot(
+            plot_params,
+            kind="hist",
+            hue="variable",
+            common_bins=False,
+            element="step",
+            alpha=0.7,
+            lw=1.5,
+        )
+        if "inits" not in sampler_kwargs.keys():
             sampler_kwargs["inits"] = inits_from_priors(
-                model, fit_prior, sampler_kwargs["chains"])
+                model, fit_prior, sampler_kwargs["chains"]
+            )
         plt.show()
         data[auto_prior_var] = 0
     else:
@@ -100,17 +120,35 @@ def standard_analysis(
     plotter.predictive_check(rep_key, data=data, data_key=data_key, **pcheck_kwargs)
 
     print("\n ---- Posterior distributions ---- \n")
-    plotter.dis_plot(plot_params, kind="hist", hue="variable", common_bins=False, element="step", alpha=0.7, lw=1.5)
+    plotter.dis_plot(
+        plot_params,
+        kind="hist",
+        hue="variable",
+        common_bins=False,
+        element="step",
+        alpha=0.7,
+        lw=1.5,
+    )
     plt.show()
 
     print("\n ---- Prior vs posterior comparison ---- \n")
-    plotter.cat_plot(parameters=plot_params, fit_titles=[fit_title, fit_title + "_prior"])
+    plotter.cat_plot(
+        parameters=plot_params, fit_titles=[fit_title, fit_title + "_prior"]
+    )
     if output_dir is not None:
         print("\n Saving files to ", output_dir)
         save_analysis(output_dir, data=data, prior=fit_prior, posterior=fit)
     return fit
 
-def sensitivity_sweep(model, data, data_sweep, parameters, n_processes=8, sampler_kwargs={'chains': 1, 'show_progress': False}):
+
+def sensitivity_sweep(
+    model,
+    data,
+    data_sweep,
+    parameters,
+    n_processes="max",
+    sampler_kwargs={"chains": 1, "show_progress": False},
+):
     keys, values = zip(*data_sweep.items())
     permutations = [dict(zip(keys, v)) for v in it.product(*values)]
     all_data = []
@@ -129,19 +167,21 @@ def sensitivity_sweep(model, data, data_sweep, parameters, n_processes=8, sample
 
     return pd.concat(multithreaded_run(sample, all_data, n_processes=n_processes))
 
+
 def save_analysis(dir_path, data=None, prior=None, posterior=None):
     if not os.path.isdir(dir_path):
         raise ValueError(f"Path {dir_path} does not exist.")
     if data is not None:
-        dict_to_json(data, os.path.join(dir_path, 'data.json'))
+        dict_to_json(data, os.path.join(dir_path, "data.json"))
     if prior is not None:
-        prior_dir = os.path.join(dir_path, 'prior')
+        prior_dir = os.path.join(dir_path, "prior")
         os.makedirs(prior_dir, exist_ok=True)
         prior.save_csvfiles(prior_dir)
     if posterior is not None:
-        posterior_dir = os.path.join(dir_path, 'posterior')
+        posterior_dir = os.path.join(dir_path, "posterior")
         os.makedirs(posterior_dir, exist_ok=True)
         posterior.save_csvfiles(posterior_dir)
+
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -153,7 +193,8 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return super(NumpyEncoder, self).default(obj)
 
+
 def dict_to_json(dd, file_path):
-    with open(file_path, 'w') as json_file:
+    with open(file_path, "w") as json_file:
         json.dump(dd, json_file, indent=4, cls=NumpyEncoder)
     print(f"Dictionary saved to {file_path}")

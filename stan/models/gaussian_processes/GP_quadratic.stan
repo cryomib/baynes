@@ -22,19 +22,18 @@ model {
   {
     matrix[N1, N1] K = gp_exp_quad_cov(x1, alpha, rho);
     real sq_sigma = square(sigma);
-    
-    // diagonal elements
+
     for (n1 in 1 : N1) {
       K[n1, n1] = K[n1, n1] + sq_sigma;
     }
-    
+
     L_K = cholesky_decompose(K);
   }
-  
+
   rho ~ inv_gamma(5, 5);
   alpha ~ std_normal();
   sigma ~ std_normal();
-  
+
   y1 ~ multi_normal_cholesky(mu, L_K);
 }
 generated quantities {

@@ -18,7 +18,7 @@ def _get_config_file():
     baynes_path = os.path.dirname(baynes.__file__)
     config_file = os.path.join(baynes_path, "config.json")
     if not os.path.isfile(config_file):
-        raise ValueError("No config.json file found for Baynes")
+        raise ValueError("No config.json file found for baynes")
     return config_file
 
 
@@ -59,37 +59,38 @@ def get_models_path() -> str:
             'Path to the models directory not set, use "baynes.model_utils.set_model_path(path)"'
         )
     if not os.path.isdir(models_dir):
-        raise ValueError(f"No CmdStan directory, path {models_dir} does not exist.")
+        raise ValueError(
+            f"No CmdStan directory, path {models_dir} does not exist.")
     return os.path.normpath(models_dir)
 
 
-def set_compiler_kwargs(compiler_kwargs: dict) -> None:
+def get_config() -> dict:
     """
-    Set the Stan compiler kwargs in the configuration file.
+    Retrieve the configuration file.
+
+    Returns:
+        dict: Dictionary containing baynes' configuration.
+    """
+    with open(_get_config_file(), "r") as f:
+        config = json.load(f)
+    return config
+
+
+def update_config(new_config: dict) -> None:
+    """
+    Update the configuration file.
 
     Parameters:
-        compiler_kwargs (dict): Dictionary containing compiler kwargs.
+        compiler_kwargs (dict): Dictionary containing config keywords and arguments.
     """
     cfile = _get_config_file()
     with open(cfile, "r") as f:
         config = json.load(f)
 
-    config["STAN_COMPILER_KWARGS"] = compiler_kwargs
+    config.update(new_config)
 
     with open(cfile, "w") as f:
         json.dump(config, f, indent=4)
-
-
-def get_compiler_kwargs() -> dict:
-    """
-    Get the Stan compiler kwargs from the configuration file.
-
-    Returns:
-        dict: Dictionary containing compiler kwargs.
-    """
-    with open(_get_config_file(), "r") as f:
-        config = json.load(f)
-    return config["STAN_COMPILER_KWARGS"]
 
 
 def get_stan_file(stan_file: str) -> str or None:
@@ -129,7 +130,7 @@ def get_model(stan_file: str) -> CmdStanModel or None:
     Returns:
         CmdstanModel or None: The model corresponding to the .stan file or None if not found.
     """
-    return CmdStanModel(stan_file=get_stan_file(stan_file), **get_compiler_kwargs())
+    return CmdStanModel(stan_file=get_stan_file(stan_file), **get_config()['STAN_COMPILER_KWARGS'])
 
 
 def select_from_list(options):
