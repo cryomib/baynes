@@ -1,5 +1,5 @@
 arviz==0.16.1
-cmdstanpy==1.1.0
+cmdstanpy==1.2.0
 ipykernel==6.21.1
 ipython==8.9.0
 ipywidgets==8.0.4
