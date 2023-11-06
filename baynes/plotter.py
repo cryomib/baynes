@@ -1,7 +1,6 @@
 import os
 import pickle
 import numpy as np
-import itertools as it
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -547,7 +546,6 @@ class FitPlotter(MatplotlibHelper):
         if n_bins is not None:
             events, bins = np.histogram(events, bins=n_bins)
             draws = np.array([np.histogram(dr, bins=bins)[0] for dr in draws])
-        std = np.nanstd(draws, axis=0)
         if lines:
             for i in range(min(80, len(draws))):
                 if i==0:
