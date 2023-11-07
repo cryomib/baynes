@@ -1,6 +1,5 @@
 # baynes
-Tools and models for bayesian data analysis
-![versions](https://img.shields.io/pypi/pyversions/pybadges.svg)
+Tools and models for bayesian data analysis.
 
 ## Dependecies
 * This package works for `python >= 3.8`. It is strongly suggested to create a dedicated python environment, for example using `virtualenv`, which can be installed with pip
