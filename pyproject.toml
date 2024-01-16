@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "baynes"
+version = "0.0.1"
+description = "\"Tools for bayesian data analysis using STAN\""
+authors = ["pietro <campana.pietro@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+cmdstanpy = "^1.2.0"
+numpy = "^1.26.2"
+arviz = "^0.16.1"
+seaborn = "^0.13.1"
+scipy = "^1.11.4"
+numba = "^0.58.1"
+
+[tool.poetry.group.dev.dependencies]
+pylint = "^3.0.3"
+pytest = "^7.4.3"
+mypy = "^1.8.0"
+
+[tool.poetry.scripts]
+xyz = "scripts.set_defaults:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
