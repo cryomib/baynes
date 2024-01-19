@@ -73,10 +73,10 @@ vector allowed_beta(vector E, real m_nu, real Q){
 
     for (j in 1:N){
         if (Q-E[j]>=m_nu){
-            pb = sqrt(E**2+E*me);
+            pb = sqrt(E[j]^2+E[j]*me);
             eta = 1./137 * E[j]/pb;
             F = 2*pi() /(1-exp(-2*pi()*eta));
-            y[j] = y[j] + pb * (E[j]+me)*(Q-E[j])*sqrt((Q - E[j]) ** 2 - m_nu**2);
+            y[j] = y[j] + pb * (E[j]+me)*(Q-E[j])*sqrt((Q - E[j]) ^ 2 - m_nu^2);
 
         }
     }
