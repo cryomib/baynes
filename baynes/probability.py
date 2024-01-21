@@ -3,7 +3,7 @@ import numbers
 from math import erf
 
 import numpy as np
-from numba import njit
+from numba import njit, prange
 
 
 def lorentzian(E, E0, gamma):
@@ -105,20 +105,28 @@ def re_spectrum(E, m_nu, Q=2465, bm1=19.5, b1=-6.8e-6, b2=3.05e-9):
     )
 
 
-@njit
+@njit(parallel=True)
 def ptolemy(E, coeffs, m_nu, Q=18589.8):
     """Compute the b-decay spectrum of tritium in graphene."""
+    E = np.asarray(E)
     N = len(E)
     y = np.zeros(N)
     me = 510998.95
-    mhe3 = 2809413505.67592
+    mhe3 = 931.49410242e6 * 3.0160293
     lambda_val = 4.21e-5
     eps0 = 5.76
+    Gf = 1.1663787e-23
+    Vud = 0.97373
+    gsq = (Gf * Vud) ** 2 * (1 + (1.25 * 1.65) ** 2)
+    NH3 = 1 / 1.66054e-24 / 3.01604928
+
+    const_discrspe = NH3 * gsq * lambda_val**2 / (4 * np.pi**3 * 6.582119e-16)
+    const_contspe = NH3 * gsq * lambda_val / (2 * np.pi ** (7.0 / 2.0) * 6.582119e-16)
 
     i_disc = lambda_val / (2 * np.pi**3)
     pb = np.sqrt(E**2 + 2 * E * me)
 
-    for k in range(64):
+    for k in prange(64):
         Qn = Q - coeffs[k][0]
         pn = coeffs[k][1]
         an = coeffs[k][2]
@@ -129,7 +137,7 @@ def ptolemy(E, coeffs, m_nu, Q=18589.8):
             if E_nu >= m_nu:
                 xb = (pb[j] - pn) / pn
                 y[j] += (
-                    i_disc
+                    const_discrspe
                     * pb[j]
                     * (E[j] + me)
                     * np.sqrt(E_nu**2 - m_nu**2)
@@ -137,8 +145,8 @@ def ptolemy(E, coeffs, m_nu, Q=18589.8):
                     * (an + xb * lambda_val * pn * (2 * bn - lambda_val * pn * cn))
                 )
 
-    i_cont = 1 / (np.pi ** (7 / 2))
-    for j in range(N):
+    i_cont = 1 / (np.pi ** (7.0 / 2.0))
+    for j in prange(N):
         QKE = Q - E[j] - eps0
         if QKE >= m_nu:
             b = -pb[j] + np.sqrt(2 * mhe3 * (QKE - m_nu))
@@ -195,7 +203,9 @@ def ptolemy(E, coeffs, m_nu, Q=18589.8):
                     - expbl * (2.0 + 2.0 * bl**2 + bl**4)
                 )
             )
-            y[j] += i_cont * (E[j] + me) * kinf2 * (I0 + I1 + I2 + I3 + I4 + I5)
+            y[j] += const_contspe * (E[j] + me) * kinf2 * (I0 + I1 + I2 + I3 + I4 + I5)
+
+    # norm = lambda_val * gsq / (2*mhe3)
 
     return y
 
