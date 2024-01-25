@@ -668,7 +668,6 @@ class FitPlotter(MatplotlibHelper):
                     ax.plot(draws[i], color=color, linewidth=0.4, alpha=0.4)
                 ax1.plot((draws[i] - events), color=color, linewidth=0.4, alpha=0.4)
         else:
-            print(f"lenghts: {len(draws), len(events)}")
             lo, hi = np.nanpercentile(draws, percs, axis=0)
 
             ax.fill_between(

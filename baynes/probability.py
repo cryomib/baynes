@@ -105,7 +105,7 @@ def re_spectrum(E, m_nu, Q=2465, bm1=19.5, b1=-6.8e-6, b2=3.05e-9):
     )
 
 
-@njit(parallel=True)
+@njit()
 def ptolemy(E, coeffs, m_nu, Q=18589.8):
     """Compute the b-decay spectrum of tritium in graphene."""
     E = np.asarray(E)
@@ -126,7 +126,7 @@ def ptolemy(E, coeffs, m_nu, Q=18589.8):
     i_disc = lambda_val / (2 * np.pi**3)
     pb = np.sqrt(E**2 + 2 * E * me)
 
-    for k in prange(64):
+    for k in range(64):
         Qn = Q - coeffs[k][0]
         pn = coeffs[k][1]
         an = coeffs[k][2]
@@ -145,8 +145,7 @@ def ptolemy(E, coeffs, m_nu, Q=18589.8):
                     * (an + xb * lambda_val * pn * (2 * bn - lambda_val * pn * cn))
                 )
 
-    i_cont = 1 / (np.pi ** (7.0 / 2.0))
-    for j in prange(N):
+    for j in range(N):
         QKE = Q - E[j] - eps0
         if QKE >= m_nu:
             b = -pb[j] + np.sqrt(2 * mhe3 * (QKE - m_nu))
@@ -205,9 +204,34 @@ def ptolemy(E, coeffs, m_nu, Q=18589.8):
             )
             y[j] += const_contspe * (E[j] + me) * kinf2 * (I0 + I1 + I2 + I3 + I4 + I5)
 
-    # norm = lambda_val * gsq / (2*mhe3)
-
     return y
+
+@njit()
+def allowed_beta(E, m_nu, Q=18589.6):
+    """Compute the b-decay spectrum of atomic tritium."""
+    E = np.asarray(E)
+    N = len(E)
+    y = np.zeros(N)
+    me = 510998.95
+    #alpha = 1/137
+    #eta = Z* alpha * E/p
+    #F = 2*np.pi/(1-np.exp(-2*np.pi*eta))
+    Gf = 1.1663787e-23
+    Vud = 0.97373
+    NH3 = 1 / 1.66054e-24 / 3.01604928
+
+    const = NH3*(Gf * Vud) ** 2 * (1 + 3* (1.2646 ** 2))
+    for i in range(N):
+        if (Q-E[i])>m_nu:
+            p = np.sqrt(E[i]**2+2*E[i]*me)
+            if E[i] == 0:
+                y[i] = 0
+            else:
+                beta = p/(E[i]+me)
+                eta = 2.0*0.04585061813815046 / beta
+                F = eta * (1.002037 - 0.001427 * beta) / (1 - np.exp(-eta))
+                y[i]=F*p*(E[i]+me)*(Q-E[i])*np.sqrt((Q - E[i]) ** 2 - m_nu**2)
+    return y * const / (2*np.pi**3* 6.582119e-16)
 
 
 def hdi(samples, prob=0.95):
