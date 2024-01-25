@@ -68,14 +68,16 @@ vector allowed_beta(vector E, real m_nu, real Q){
 
     real me = 510998.95;
     real pb;
+    real beta_val;
     real eta;
     real F;
 
     for (j in 1:N){
         if (Q-E[j]>=m_nu){
-            pb = sqrt(E[j]^2+E[j]*me);
-            eta = 1./137 * E[j]/pb;
-            F = 2*pi() /(1-exp(-2*pi()*eta));
+            pb = sqrt(E[j]^2 + 2*E[j]*me);
+            beta_val = pb/(E[j]+me);
+            eta = 2.0*0.04585061813815046 / beta_val;
+            F = eta * (1.002037 - 0.001427 * beta_val) / (1 - exp(-eta));
             y[j] = y[j] + pb * (E[j]+me)*(Q-E[j])*sqrt((Q - E[j]) ^ 2 - m_nu^2);
 
         }

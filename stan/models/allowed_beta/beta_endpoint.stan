@@ -6,9 +6,8 @@ functions{
 
 data {
   int<lower=1> N_bins;
-  vector[N_bins] x;
+  vector[N_bins + 1] x;
   array[N_bins] int counts;
-  array[64, 5] real coeffs;
   real m_max;
   real<lower=0> p_Q;
   real<lower=0> p_std_Q;
@@ -50,9 +49,9 @@ model {
 
   if (prior == 0) {
     vector[N_ext] spectrum = allowed_beta(extended_x, m_nu, Q);
-    vector[N_bins] convolved = convolve_spectrum(window_x, spectrum, p_FWHM);
+    vector[N_bins] convolved = convolve_and_bin(window_x, spectrum, p_FWHM);
    // counts ~ poisson(((1-f_bkg)*bare_spectrum + f_bkg * bkg_norm) *A* N_ev);
-    counts ~ poisson(convolved/sum(convolved)*N_ev + 1e-6);
+    counts ~ poisson(convolved*N_ev + 1e-6);
 
   }
 }
@@ -61,8 +60,8 @@ generated quantities {
   array[N_bins] int counts_rep;
   {
     vector[N_ext] spec = allowed_beta(extended_x, m_nu, Q);
-    vector[N_bins] convolved = convolve_spectrum(window_x, spec, p_FWHM);
-    counts_rep = poisson_rng(convolved ./ sum(convolved)* N_ev+1e-4);
+    vector[N_bins] convolved = convolve_and_bin(window_x, spec, p_FWHM);
+    counts_rep = poisson_rng(convolved * N_ev+1e-4);
 
   }
 }
