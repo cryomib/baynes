@@ -14,7 +14,7 @@
         y[i] = gamma_L / ((E[i] - E0) ^ 2 + gamma_L ^ 2);
       }
       else{
-        y[i] = gamma_L / ((E[i] - E0) ^ 2 + gamma_L ^ 2);
+        y[i] = gamma_R / ((E[i] - E0) ^ 2 + gamma_R ^ 2);
       }
     }
     real norm1 = 1/(2 * gamma_L);
