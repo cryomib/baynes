@@ -50,35 +50,6 @@
     return segment(autocorrelation(Ho_centers), N_ext-N+1, N-1);
   }
 
-  // convolve true spectrum true_y with response function
-  vector convolve_spectrum(vector x_window, vector y_full, real FWHM){
-    int Ny = num_elements(y_full);
-    int Nwx = num_elements(x_window);
-    if (FWHM == 0){
-      return y_full;
-    }
-    else{
-      vector[Nwx] y_spread = gaussian_response(x_window, FWHM, Nwx);
-      vector[Ny - Nwx + 1] y_obs = fft_convolve(y_full, y_spread);
-      return y_obs / sum(y_obs);
-    }
-  }
-
-  // convolve true spectrum true_y with response function
-  vector convolve_and_bin(vector x_window, vector y_full, real FWHM){
-    int Ny = num_elements(y_full);
-    int Nwx = num_elements(x_window);
-    if (FWHM == 0){
-      return (head(y_full, Ny-1) + tail(y_full, Ny-1))/2;
-    }
-    else{
-      vector[Nwx] y_spread = gaussian_response(x_window, FWHM, Nwx);
-      vector[Ny - Nwx + 1] y_obs = fft_convolve(y_full, y_spread);
-      vector[Ny - Nwx] y_centers =  (head(y_obs, Ny-Nwx) + tail(y_obs, Ny-Nwx))/2;
-      return y_centers / sum(y_centers);
-    }
-  }
-
   // Fixed bare spectrum (without phase space), no background
   vector spectrum(vector x_full, vector x_window, real FWHM, real m_nu, real Q_H, vector bare_spectrum){
     int Nx = num_elements(x_full);

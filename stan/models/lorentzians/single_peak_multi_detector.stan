@@ -1,14 +1,13 @@
 /*
 
 IMPORTANT: INCREASE NUMERICAL PRECISION IN CMDSTANPY TO  MAKE THIS WORK PROPERLY
-USE SIG_FIGS = 10 IN SAMPLER ARGUMENTS
+USE "sig_figs" = 9 OR HIGHER IN SAMPLER ARGUMENTS
 
 */
 
 
 functions{
   #include convolution_functions.stan
-  #include Ho_fit_functions.stan
   #include lorentzians_functions.stan
 }
 
@@ -70,7 +69,8 @@ model {
     if (prior == 0) {
       vector[N_ext] bare_spectrum = y0 + m * (extended_x -E_syst[i]- xmin)+ 
                                     lorentzian_xps(extended_x-E_syst[i], E0, gamma, alpha, 0) * 100; // factor 100 to consider low background (y0, y1)
-      counts[i] ~ poisson(spectrum(extended_x-E_syst[i], window_x, FWHM[i], 0, 2833, bare_spectrum) *A[i]* N_ev[i]);
+      vector[N_bins] convolved = convolve_and_bin(window_x, bare_spectrum, FWHM[i]);
+      counts[i] ~ poisson(convolved * A[i] * N_ev[i]);
     }
   }
 }
@@ -80,8 +80,8 @@ generated quantities {
   {
       vector[N_ext] bare_spectrum = y0 + m * (extended_x -E_syst[1]- xmin) + 
                                     lorentzian_xps(extended_x-E_syst[1], E0, gamma, alpha, 0) * 100;
-      vector[N_bins] exp_spectrum = spectrum(extended_x-E_syst[1], window_x, FWHM[1], 0, 2833, bare_spectrum)*A[1] * N_ev[1];   
-      counts_rep = poisson_rng(exp_spectrum);                   
+      vector[N_bins] convolved = convolve_and_bin(window_x, bare_spectrum, FWHM[1]);
+      counts_rep = poisson_rng(convolved * A[1] * N_ev[1]);                   
   }
 }
 
