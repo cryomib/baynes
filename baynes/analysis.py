@@ -137,6 +137,8 @@ def standard_analysis(
     )
     if output_dir is not None:
         print("\n Saving files to ", output_dir)
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
         save_analysis(output_dir, data=data, prior=fit_prior, posterior=fit)
     return fit
 
