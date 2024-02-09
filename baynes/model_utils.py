@@ -1,6 +1,8 @@
+"""Configuration and filesystem helpers for stan models and fit objects."""
 import glob
 import json
 import os
+import zipfile
 
 import numpy as np
 from cmdstanpy import CmdStanModel
@@ -33,7 +35,7 @@ def set_models_path(path: str) -> None:
         raise ValueError(f"No CmdStan directory, path {path} does not exist.")
 
     cfile = _get_config_file()
-    with open(cfile, "r") as f:
+    with open(cfile) as f:
         config = json.load(f)
 
     config["STAN_MODELS_DIR"] = path
@@ -49,7 +51,7 @@ def get_models_path() -> str:
     Returns:
         str: The directory path to the Stan models.
     """
-    with open(_get_config_file(), "r") as f:
+    with open(_get_config_file()) as f:
         config = json.load(f)
     models_dir = ""
     if "STAN_MODELS_DIR" in config.keys() and len(config["STAN_MODELS_DIR"]) > 0:
@@ -59,8 +61,7 @@ def get_models_path() -> str:
             'Path to the models directory not set, use "baynes.model_utils.set_model_path(path)"'
         )
     if not os.path.isdir(models_dir):
-        raise ValueError(
-            f"No CmdStan directory, path {models_dir} does not exist.")
+        raise ValueError(f"No CmdStan directory, path {models_dir} does not exist.")
     return os.path.normpath(models_dir)
 
 
@@ -71,7 +72,7 @@ def get_config() -> dict:
     Returns:
         dict: Dictionary containing baynes' configuration.
     """
-    with open(_get_config_file(), "r") as f:
+    with open(_get_config_file()) as f:
         config = json.load(f)
     return config
 
@@ -84,7 +85,7 @@ def update_config(new_config: dict) -> None:
         compiler_kwargs (dict): Dictionary containing config keywords and arguments.
     """
     cfile = _get_config_file()
-    with open(cfile, "r") as f:
+    with open(cfile) as f:
         config = json.load(f)
 
     config.update(new_config)
@@ -103,7 +104,6 @@ def get_stan_file(stan_file: str) -> str or None:
     Returns:
         str or None: The path to the .stan file or None if not found.
     """
-
     if not stan_file.endswith(".stan"):
         stan_file += ".stan"
     models_path = get_models_path()
@@ -122,7 +122,7 @@ def get_stan_file(stan_file: str) -> str or None:
 
 def get_model(stan_file: str) -> CmdStanModel or None:
     """
-    Return a stan file model the models directory path, compiling with default arguments
+    Return a stan file model the models directory path, compiling with default arguments.
 
     Parameters:
         stan_file (str): The name of the .stan file to find.
@@ -130,7 +130,9 @@ def get_model(stan_file: str) -> CmdStanModel or None:
     Returns:
         CmdstanModel or None: The model corresponding to the .stan file or None if not found.
     """
-    return CmdStanModel(stan_file=get_stan_file(stan_file), **get_config()['STAN_COMPILER_KWARGS'])
+    return CmdStanModel(
+        stan_file=get_stan_file(stan_file), **get_config()["STAN_COMPILER_KWARGS"]
+    )
 
 
 def select_from_list(options):
@@ -197,3 +199,31 @@ def inits_from_priors(model, prior_fit, n_chains, dir="inits"):
         with open(file_name, "w", encoding="utf-8") as f:
             json.dump(inits, f, ensure_ascii=False, indent=4)
     return init_files
+
+
+def zip_folder(folder_path: str, zip_filename: str):
+    """
+    Zip a given folder and all its subdirectories.
+
+    Parameters:
+        folder_path: Path to the folder to be zipped.
+        zip_filename: Name of the output zip file.
+    """
+    with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, folder_path)
+                zipf.write(file_path, arcname=arcname)
+
+
+def unzip_folder(zip_filename: str, extract_path: str):
+    """
+    Unzip a given zip file into a specified extraction path.
+
+    Parameters:
+        zip_filename: Name of the zip file to be extracted.
+        extract_path: Path to extract the contents of the zip file.
+    """
+    with zipfile.ZipFile(zip_filename, "r") as zipf:
+        zipf.extractall(extract_path)
