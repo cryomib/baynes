@@ -414,6 +414,9 @@ class FitPlotter(MatplotlibHelper):
     ):
         """Save all specified fits as zipped archive containing csv files in subdirectories."""
         if data_file is not None:
+            save_dir = os.path.dirname(data_file)
+            if save_dir:
+                os.makedirs(save_dir, exist_ok=True)
             if not data_file.endswith(".zip"):
                 data_file += ".zip"
         else:
