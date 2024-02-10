@@ -1,6 +1,5 @@
 # baynes
-Tools and models for bayesian data analysis
-![versions](https://img.shields.io/pypi/pyversions/pybadges.svg)
+Tools and models for bayesian data analysis.
 
 ## Dependecies
 * This package works for `python >= 3.8`. It is strongly suggested to create a dedicated python environment, for example using `virtualenv`, which can be installed with pip
@@ -62,13 +61,13 @@ This will automatically execute all the steps of the manual installation using a
    ```
    (baynesenv) python scripts/set_defaults.py
    ```
-   This will set `baynes/stan/` as the models' base folder and add `baynes/stan/include/` to the compiler search path.
+   This will set `baynes/stan/` as the models' base folder and add `baynes/stan/include/` to the compiler search path. Otherwise, the arguments specified in `baynes/config.json` will be used as defaults. Additional default values can be set by updating the config dictionary with dedicated functions found in `baynes/model_utils.py`.
 
-5. (optional) make the jupyter kernel available
+5. (optional) install the jupyter kernel to make `baynesenv` available in notebooks
    ```
    (baynesenv) ipython kernel install --user --name=baynesenv
    ```
-
+   Note: Jupyter notebooks must be run after deactivating the environment.
 
 ## Project top-level directory layout
 

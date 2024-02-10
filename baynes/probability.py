@@ -3,7 +3,7 @@ import numbers
 from math import erf
 
 import numpy as np
-from numba import njit, prange
+from numba import njit
 
 
 def lorentzian(E, E0, gamma):
@@ -93,16 +93,30 @@ def HoSpectrum(
     )
 
 
+@njit()
 def re_spectrum(E, m_nu, Q=2465, bm1=19.5, b1=-6.8e-6, b2=3.05e-9):
     """Compute the 187Re spectrum with shape factor corrections."""
     E = np.asarray(E)
+    N = len(E)
+    y = np.zeros(N)
     me = 510998
-    spectrum = np.sqrt(E**2 + 2 * E * me) * (bm1 + E - b1 * E**2 + b2 * E**3)
-    return (
-        np.clip((Q - E), 0, None)
-        * np.sqrt(np.clip((Q - E) ** 2 - m_nu**2, 0, None))
-        * spectrum
-    )
+    Gf = 1.1663787e-23
+    Vud = 0.97373
+    gsq = (Gf * Vud) ** 2
+    FD_pars = [3.01258188e02, -4.98343890e-01, 5.69632611e-04]
+    for i in range(N):
+        if Q - E[i] >= m_nu:
+            pb = np.sqrt(E[i] ** 2 + 2 * E[i] * me)
+            FD = np.exp(
+                np.log(FD_pars[0])
+                + FD_pars[1] * np.log(E[i])
+                + FD_pars[2] * (np.log(E[i])) ** 2
+            )
+            exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i] ** 2
+            y[i] = y[i] + FD * exchange * pb * (E[i] + me) * (Q - E[i]) * np.sqrt(
+                (Q - E[i]) ** 2 - m_nu**2
+            )
+    return y
 
 
 @njit()
@@ -206,6 +220,7 @@ def ptolemy(E, coeffs, m_nu, Q=18589.8):
 
     return y
 
+
 @njit()
 def allowed_beta(E, m_nu, Q=18589.6):
     """Compute the b-decay spectrum of atomic tritium."""
@@ -213,25 +228,31 @@ def allowed_beta(E, m_nu, Q=18589.6):
     N = len(E)
     y = np.zeros(N)
     me = 510998.95
-    #alpha = 1/137
-    #eta = Z* alpha * E/p
-    #F = 2*np.pi/(1-np.exp(-2*np.pi*eta))
+    # alpha = 1/137
+    # eta = Z* alpha * E/p
+    # F = 2*np.pi/(1-np.exp(-2*np.pi*eta))
     Gf = 1.1663787e-23
     Vud = 0.97373
     NH3 = 1 / 1.66054e-24 / 3.01604928
 
-    const = NH3*(Gf * Vud) ** 2 * (1 + 3* (1.2646 ** 2))
+    const = NH3 * (Gf * Vud) ** 2 * (1 + 3 * (1.2646**2))
     for i in range(N):
-        if (Q-E[i])>m_nu:
-            p = np.sqrt(E[i]**2+2*E[i]*me)
+        if (Q - E[i]) > m_nu:
+            p = np.sqrt(E[i] ** 2 + 2 * E[i] * me)
             if E[i] == 0:
                 y[i] = 0
             else:
-                beta = p/(E[i]+me)
-                eta = 2.0*0.04585061813815046 / beta
+                beta = p / (E[i] + me)
+                eta = 2.0 * 0.04585061813815046 / beta
                 F = eta * (1.002037 - 0.001427 * beta) / (1 - np.exp(-eta))
-                y[i]=F*p*(E[i]+me)*(Q-E[i])*np.sqrt((Q - E[i]) ** 2 - m_nu**2)
-    return y * const / (2*np.pi**3* 6.582119e-16)
+                y[i] = (
+                    F
+                    * p
+                    * (E[i] + me)
+                    * (Q - E[i])
+                    * np.sqrt((Q - E[i]) ** 2 - m_nu**2)
+                )
+    return y * const / (2 * np.pi**3 * 6.582119e-16)
 
 
 def hdi(samples, prob=0.95):

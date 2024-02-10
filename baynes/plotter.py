@@ -1,13 +1,19 @@
 """Main plots generator and manager."""
 import os
 import pickle
+import tempfile
+import time
 from collections import OrderedDict
+from typing import Union
 
+import cmdstanpy
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from cmdstanpy import CmdStanMCMC
+
+from baynes.model_utils import unzip_folder, zip_folder
 
 
 class MatplotlibHelper:
@@ -382,15 +388,88 @@ class FitPlotter(MatplotlibHelper):
             title = self.current_fit
         return self.fits[title]
 
-    def get_fit_titles(self, title=None):
-        """Get the titles of the stored fit objects."""
+    def get_fit_titles(self, title=None) -> list:
+        """
+        Get the titles of the stored fit objects.
+
+        Parameters:
+            title (str, optional): If specified, filter fit titles based on the provided string.
+                If "all", return all fit titles.
+
+        Returns:
+            list: A list of fit titles.
+        """
         if title is None:
-            titles = self.current_fit
+            titles = [self.current_fit]
         elif title == "all":
             titles = list(self.fits.keys())
         else:
             titles = [t for t in self.fits.keys() if title in t]
         return titles
+
+    def save_fit_zip(
+        self,
+        data_file: Union[str, None] = None,
+        fit_titles: Union[str, list, None] = "all",
+    ):
+        """Save all specified fits as zipped archive containing csv files in subdirectories."""
+        if data_file is not None:
+            save_dir = os.path.dirname(data_file)
+            if save_dir:
+                os.makedirs(save_dir, exist_ok=True)
+            if not data_file.endswith(".zip"):
+                data_file += ".zip"
+        else:
+            data_file = f"data_{time.strftime('%m_%d_%H_%M_%S')}.zip"
+        dirpath = tempfile.mkdtemp()
+        self.save_fit_csvs(save_dir=dirpath, fit_titles=fit_titles)
+        zip_folder(dirpath, data_file)
+
+    def load_fit_zip(self, data_file: str):
+        """Load fit objects from zipped archive."""
+        if not os.path.isfile(data_file):
+            raise RuntimeError(data_file + " does not exists.")
+        dirpath = tempfile.mkdtemp()
+        unzip_folder(data_file, dirpath)
+        self.load_fit_csvs(dirpath)
+
+    def save_fit_csvs(
+        self, save_dir: str, fit_titles: Union[str, list, None] = "all"
+    ) -> None:
+        """
+        Save all specified fits as stan csv files in subdirectories.
+
+        Parameters:
+            save_dir (str): The directory where the Stan CSV files will be saved.
+            fit_titles (Union[str, list, None], optional): If specified, save only the fits corresponding
+                to the provided titles. If "all", save all fits. Default is "all".
+
+        Returns:
+            None
+        """
+        fit_titles = self.get_fit_titles(fit_titles)
+        if save_dir == "":
+            raise ValueError("Must specify a save directory.")
+        os.makedirs(save_dir, exist_ok=True)
+        for title in fit_titles:
+            fit = self.get_fit(title)
+            save_path = os.path.join(save_dir, title)
+            fit.save_csvfiles(save_path)
+
+    def load_fit_csvs(self, csv_dir: str):
+        """Load dictionary of cmdstanpy fit objects from nested directories containing csv files.
+
+        Parameters:
+            csv_dir (str): The directory containing nested subdirectories with CSV files.
+
+        Returns:
+            None
+        """
+        if not os.path.isdir(csv_dir):
+            raise ValueError(csv_dir + "is not an existing directory.")
+        for subdir in os.scandir(csv_dir):
+            if subdir.is_dir():
+                self.add_fit(fit=cmdstanpy.from_csv(subdir.path), fit_title=subdir.name)
 
     def draws_df(self, fit_titles=None, parameters=None, inc_warmup=False):
         """
