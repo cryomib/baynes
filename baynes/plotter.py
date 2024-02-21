@@ -416,8 +416,13 @@ class FitPlotter(MatplotlibHelper):
         if data_file is not None:
             if not data_file.endswith(".zip"):
                 data_file += ".zip"
+            save_dir = os.path.dirname(data_file)
+            if save_dir:
+                os.makedirs(save_dir, exist_ok=True)
+
         else:
             data_file = f"data_{time.strftime('%m_%d_%H_%M_%S')}.zip"
+        # os.makedirs(os.path.join("save_fit", data_file))
         dirpath = tempfile.mkdtemp()
         self.save_fit_csvs(save_dir=dirpath, fit_titles=fit_titles)
         zip_folder(dirpath, data_file)

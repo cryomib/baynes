@@ -32,3 +32,41 @@
     x_ext = x_ext + min(x) - dx * (N_window %/% 2);
     return x_ext;
   }
+
+  // convolve true spectrum true_y with response function considering bin centers
+  vector convolve_spectrum(vector x_window, vector y_full, real FWHM){
+    int Ny = num_elements(y_full);
+    int Nwx = num_elements(x_window);
+    if (FWHM == 0){
+      return y_full;
+    }
+    else{
+      vector[Nwx] y_spread = gaussian_response(x_window, FWHM, Nwx);
+      vector[Ny - Nwx + 1] y_obs = fft_convolve(y_full, y_spread);
+      return y_obs / sum(y_obs);
+    }
+  }
+
+  // convolve true spectrum true_y with gaussian response function from bin edges
+  vector convolve_and_bin(vector x_window, vector y_full, real FWHM){
+    int Ny = num_elements(y_full);
+    int Nwx = num_elements(x_window);
+    if (FWHM == 0){
+      return (head(y_full, Ny-1) + tail(y_full, Ny-1))/2;
+    }
+    else{
+      vector[Nwx] y_spread = gaussian_response(x_window, FWHM, Nwx);
+      vector[Ny - Nwx + 1] y_obs = fft_convolve(y_full, y_spread);
+      vector[Ny - Nwx] y_centers =  (head(y_obs, Ny-Nwx) + tail(y_obs, Ny-Nwx))/2;
+      return y_centers / sum(y_centers);
+    }
+  }
+
+  // convolve true spectrum true_y with response function from bin edges
+  vector convolve_and_bin(vector y_full, vector y_response){
+    int Ny = num_elements(y_full);
+    int Nwx = num_elements(y_response);
+    vector[Ny - Nwx + 1] y_obs = fft_convolve(y_full, y_response);
+    vector[Ny - Nwx] y_centers =  (head(y_obs, Ny-Nwx) + tail(y_obs, Ny-Nwx))/2;
+    return y_centers / sum(y_centers);
+  }

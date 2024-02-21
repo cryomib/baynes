@@ -85,3 +85,84 @@ vector allowed_beta(vector E, real m_nu, real Q){
     return y;
 
 }
+
+vector Re187(vector E, real m_nu, real Q){
+    int N = num_elements(E);
+    vector[N] y = rep_vector(0, N);
+
+    real bm1 = 19.5,  b1 = -6.8e-6,  b2 = 3.05e-9;
+    real fd1 = 3.01258188e02, fd2 = -4.98343890e-01, fd3 = 5.69632611e-04;
+    real me = 510998.95;
+
+    real pb;
+    real FD;
+    real exchange;
+
+    for (i in 1:N) {
+        if (Q - E[i] >= m_nu) {
+            pb = sqrt(E[i]^2 + 2 * E[i] * me);
+            FD = exp(
+                log(fd1) +
+                fd2 * log(E[i]) +
+                fd3 * log(E[i])^2
+            );
+            exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i]^2;
+            y[i] = y[i] + FD * exchange * pb * (E[i] + me) * (Q - E[i]) * sqrt(
+                (Q - E[i])^ 2 - m_nu^2
+            );
+        }
+    }
+
+    return y;
+}
+
+
+vector Re187_bare(vector E){
+    int N = num_elements(E);
+    vector[N] y = rep_vector(0, N);
+
+    real bm1 = 19.5,  b1 = -6.8e-6,  b2 = 3.05e-9;
+    real fd1 = 3.01258188e02, fd2 = -4.98343890e-01, fd3 = 5.69632611e-04;
+    real me = 510998.95;
+
+    real pb;
+    real FD;
+    real exchange;
+
+    for (i in 1:N) {
+        pb = sqrt(E[i]^2 + 2 * E[i] * me);
+        FD = exp(
+            log(fd1) +
+            fd2 * log(E[i]) +
+            fd3 * log(E[i])^2
+        );
+        exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i]^2;
+        y[i] = y[i] + FD * exchange * pb * (E[i] + me);
+    }
+
+    return y;
+}
+
+
+vector gauss_exp_tail(vector E, real E0, real sigma, real lambda){
+    int N = num_elements(E);
+    vector[N] y = rep_vector(0, N);
+    real sl = sigma*lambda;
+    for (i in 1:N){
+        y[i] = lambda/2 * exp((E[i]-E0)*lambda+sl^2 / 2)*erfc(((E[i]-E0)/sigma+sl)/sqrt(2));
+    }
+    return y;
+}
+
+vector gauss_plus_double_exp(vector E, real E0, real sigma, vector lambda, vector A_exp){
+    int N = num_elements(E);
+    vector[N] y = rep_vector(0, N);
+    vector[2] sl = sigma*lambda;
+    for (i in 1:N){
+        real x = (E[i]-E0)/sigma;
+        y[i] = A_exp[1] * lambda[1]/2 * exp((E[i]-E0)*lambda[1]+sl[1]^2 / 2)*erfc((x+sl[1])/sqrt(2));
+        y[i] += A_exp[2] * lambda[2]/2 * exp((E[i]-E0)*lambda[2]+sl[2]^2 / 2)*erfc((x+sl[2])/sqrt(2));
+        y[i] += (1-A_exp[1]-A_exp[2])*exp(-x^2 /2)/(sigma*sqrt(2*pi()));
+    }
+    return y;
+}
