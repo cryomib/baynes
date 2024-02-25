@@ -70,8 +70,8 @@ model {
     A_exp ~ normal(57, 34);
     }
   else{
-    lambda ~ normal(p_lambda, 30);
-    A_exp ~ normal(p_A_exp, 30);
+    lambda ~ normal(27, 9);
+    A_exp ~ normal(p_A_exp, 10);
   }
   if (prior == 0) {
     vector[N_ext] spectrum = Re187(extended_x, m_nu, Q);

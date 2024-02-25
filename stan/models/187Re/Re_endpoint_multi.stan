@@ -19,6 +19,8 @@ data {
   array[N_det] real p_bkg_beta;
   int<lower=0, upper=1> prior;
   int<lower=0, upper=1> exp_model;
+  real p_lambda;
+  real p_A_exp;
 }
 transformed data {
   real p_sigma = (p_FWHM[1] + p_std_FWHM[1]) / (2 * sqrt(2 * log(2)));
@@ -32,7 +34,7 @@ transformed data {
 parameters {
   real<lower=0, upper=1> m_red;
   real z;
-  //  real xz;
+  vector[N_det] xz;
   array[N_det] real<lower=0, upper=100> N_bkg;
   array[N_det] real<lower=0> f_pu;
   real<lower=0, upper=100> lambda;
@@ -43,10 +45,11 @@ parameters {
 transformed parameters {
   real<lower=0> Q = z + p_Q;
   real<lower=0, upper=m_max> m_nu = m_red * m_max;
-  // real <lower=0> A = 0.1 * xz + 1;
+  vector[N_det] A = 0.02 * xz + 1;
 }
 model {
   //exc~std_normal();
+  xz ~ std_normal();
   m_red ~ beta(1, 1);
   z ~ normal(0, p_std_Q);
   N_bkg ~ gamma(p_bkg_alpha, p_bkg_beta);
@@ -57,49 +60,40 @@ model {
     lambda ~ normal(46, 6);
     A_exp ~ normal(57, 34);
   } else {
-    lambda ~ normal(30, 5);
-    A_exp ~ normal(10, 10);
+    lambda ~ normal(p_lambda, 9);
+    A_exp ~ normal(p_A_exp, 10);
   }
   if (prior == 0) {
     vector[N_ext] spectrum = Re187(extended_x, m_nu, Q);
-    vector[N_ext] pu = Re187_pileup(extended_x, Q);
+    vector[N_bins] pu = Re187_pileup(centers_x, Q);
     for (i in 1 : N_det) {
-      vector[N_ext] exp_sp = (N_ev[i] - N_bkg[i] * N_ext
-                              - sum(pu) * N_tot[i] * f_pu[i] * 1e-4)
-                             * spectrum + pu * N_tot[i] * f_pu[i] * 1e-4
-                             + N_bkg[i];
       vector[N_window] response = gauss_plus_single_exp(window_x, 0,
                                                         FWHM[i]
                                                         / (2 * sqrt(2 * log(2))),
                                                         lambda * 1e-3,
                                                         A_exp * 1e-2);
-      vector[N_bins] convolved = convolve_and_bin(exp_sp, response);
-      counts[i] ~ poisson(convolved * N_ev[i]);
+      vector[N_bins] convolved = convolve_and_bin(spectrum, response);
+      convolved = ((N_ev[i]-N_bkg[i]*N_ext-N_tot[i]*sum(pu)*f_pu[i]*1e-4)*convolved + N_tot[i]*pu*f_pu[i]*1e-4 + N_bkg[i]);
+      counts[i] ~ poisson(convolved * A[i]);
     }
     //counts ~ poisson(spectrum(extended_x, window_x, FWHM, f_bkg, f_pu, pileup, m_nu, Q, bare_spectrum) *A* N_ev);
   }
 }
 generated quantities {
   array[N_bins] int counts_rep;
-  vector[N_bins] log_lik;
   {
     vector[N_ext] spectrum = Re187(extended_x, m_nu, Q);
-    vector[N_ext] pu = Re187_pileup(extended_x, Q);
+    vector[N_bins] pu = Re187_pileup(centers_x, Q);
     int i = 1;
-    vector[N_ext] exp_sp = (N_ev[i] - N_bkg[i] * N_ext
-                            - sum(pu) * N_tot[i] * f_pu[i] * 1e-4)
-                           * spectrum + pu * N_tot[i] * f_pu[i] * 1e-4
-                           + N_bkg[i];
-    vector[N_window] response = gauss_plus_single_exp(window_x, 0,
-                                                      FWHM[i]
-                                                      / (2 * sqrt(2 * log(2))),
-                                                      lambda * 1e-3,
-                                                      A_exp * 1e-2);
-    vector[N_bins] convolved = convolve_and_bin(exp_sp, response);
-    counts_rep = poisson_rng(convolved * N_ev[i]);
-    for (n in 1 : N_bins) {
-      log_lik[n] = poisson_lpmf(counts[i][n] | convolved * N_ev[i]);
-    }
+      vector[N_window] response = gauss_plus_single_exp(window_x, 0,
+                                                        FWHM[i]
+                                                        / (2 * sqrt(2 * log(2))),
+                                                        lambda * 1e-3,
+                                                        A_exp * 1e-2);
+      vector[N_bins] convolved = convolve_and_bin(spectrum, response);
+      convolved = ((N_ev[i]-N_bkg[i]*N_ext-N_tot[i]*sum(pu)*f_pu[i]*1e-4)*convolved + N_tot[i]*pu*f_pu[i]*1e-4 + N_bkg[i]);
+    counts_rep = poisson_rng(convolved * A[i]);
+
     // counts_rep = poisson_rng(spectrum(extended_x, window_x, FWHM, f_bkg, f_pu, pileup, m_nu, Q, bare_spectrum) *A* N_ev);
   }
 }

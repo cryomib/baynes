@@ -13,16 +13,16 @@ parameters {
 model {
   alpha ~ normal(0, 10);
   beta ~ normal(0, 10);
-  sigma ~ normal(0, 2);
+  sigma_add ~ normal(0, 2);
   if (prior == 0) {
-  y ~ normal(alpha + beta * x, sigma+sigma_add);
+  y ~ normal(alpha + beta * (x-x[1]), sigma+sigma_add);
   }
 }
 
 generated quantities {
-  array[N] real y_rep = normal_rng(alpha + beta * x, sigma);
+  array[N] real y_rep = normal_rng(alpha + beta * (x-x[1]), sigma+sigma_add);
   vector[N] log_lik;
   for (n in 1:N) {
-    log_lik[n] = normal_lpdf(y[n] | alpha + x[n] * beta, sigma);
+    log_lik[n] = normal_lpdf(y[n] | alpha + (x[n]-x[1]) * beta, sigma+sigma_add);
   }
 }
