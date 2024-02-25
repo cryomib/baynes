@@ -44,7 +44,8 @@ parameters {
 
 transformed parameters {
   real <lower=0> Q = z + p_Q;
-  real<lower=0, upper=m_max> m_nu = m_red * m_max;
+  real<lower=0, upper=m_max^2> m_sq = m_red * m_max^2;
+  real<lower=0, upper=m_max> m_nu = sqrt(m_red * m_max^2);
   real <lower=0> A = 0.1 * xz + 1;
   real sigma = FWHM / (2 * sqrt(2 * log(2)));
   //vector[N_ext] sigma = FWHM*sqrt(87.1+15.6*extended_x*1e-3+0.65*(extended_x*1e-3)^2);
@@ -69,7 +70,7 @@ model {
     A_exp ~ normal(10, 10);
   }
   if (prior == 0) {
-    vector[N_ext] spectrum = (1-f_pu)*Re187(extended_x, m_nu, Q);
+    vector[N_ext] spectrum = (1-f_pu)*Re187_mu_sq(extended_x, m_sq, Q);
     spectrum += f_pu * Re187_pileup(extended_x, Q);
     spectrum = (N_ev-N_bkg*N_ext)*spectrum + N_bkg;
     vector[N_window] response = gauss_plus_single_exp(window_x, 0, sigma, lambda*1e-3, A_exp*1e-2);
@@ -84,7 +85,7 @@ generated quantities {
   vector[N_bins] log_lik;
   {
 
-    vector[N_ext] spectrum = (1-f_pu)*Re187(extended_x, m_nu, Q);
+    vector[N_ext] spectrum = (1-f_pu)*Re187_mu_sq(extended_x, m_sq, Q);
     spectrum += f_pu * Re187_pileup(extended_x, Q);
     spectrum = (N_ev-N_bkg*N_ext)*spectrum + N_bkg;
     vector[N_window] response = gauss_plus_single_exp(window_x, 0, sigma, lambda*1e-3, A_exp*1e-2);

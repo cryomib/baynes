@@ -93,30 +93,35 @@ def HoSpectrum(
     )
 
 
-@njit()
 def re_spectrum(E, m_nu, Q=2465, bm1=19.5, b1=-6.8e-6, b2=3.05e-9):
     """Compute the 187Re spectrum with shape factor corrections."""
-    E = np.asarray(E)
     N = len(E)
     y = np.zeros(N)
-    me = 510998
-    Gf = 1.1663787e-23
-    Vud = 0.97373
-    gsq = (Gf * Vud) ** 2
-    FD_pars = [3.01258188e02, -4.98343890e-01, 5.69632611e-04]
+
+    bm1 = 19.5
+    b1 = -6.8e-6
+    b2 = 3.05e-9
+    fd1 = 3.01253255e2
+    fd2 = -4.98343890e-1
+    fd3 = 8.69015327e-4
+    fd4 = -3.64408684e-4
+    me = 510998.95
+
     for i in range(N):
         if Q - E[i] >= m_nu:
-            pb = np.sqrt(E[i] ** 2 + 2 * E[i] * me)
+            pb = np.sqrt(E[i]**2 + 2 * E[i] * me)
             FD = np.exp(
-                np.log(FD_pars[0])
-                + FD_pars[1] * np.log(E[i])
-                + FD_pars[2] * (np.log(E[i])) ** 2
+                np.log(fd1) +
+                fd2 * np.log(E[i]) +
+                fd3 * np.log(E[i])**2 +
+                fd4 * np.log(E[i])**3
             )
-            exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i] ** 2
+            exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i]**2
             y[i] = y[i] + FD * exchange * pb * (E[i] + me) * (Q - E[i]) * np.sqrt(
-                (Q - E[i]) ** 2 - m_nu**2
+                (Q - E[i])**2 - m_nu**2
             )
-    return y
+
+    return y / np.sum(y)
 
 
 @njit()

@@ -98,6 +98,15 @@ class MatplotlibHelper:
         """
         return self.figures[self.current_title]
 
+    def gca(self):
+        """
+        Get the current axes.
+
+        Returns:
+            matplotlib.axes.Axes: Current axes object.
+        """
+        return self.get_current_figure().axes
+
     def generate_new_title(self, plot_type):
         """
         Generate a new title for a figure based on the plot type.
@@ -729,7 +738,7 @@ class FitPlotter(MatplotlibHelper):
         """
         ax, ax1 = figure.subplots(2, 1, height_ratios=[2.5, 1], sharex=True)
         draws = (
-            self.get_fit(fit_name).draws_pd(rep_key, inc_warmup=False).to_numpy()[:, 3:]
+            self.get_fit(fit_name).draws_pd(rep_key, inc_warmup=False).to_numpy()
         )
         events = np.array(data[data_key])
         if n_bins is not None:

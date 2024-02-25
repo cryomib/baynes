@@ -56,7 +56,7 @@ model {
   m_red ~ beta(1, 1);
   z ~ normal(0, p_std_Q);
   xz~std_normal();
-  N_bkg ~ normal(0.25*dx, 0.5);
+  N_bkg ~ normal(0.25*dx, 0.05);
   f_pu ~ normal(p_f_pu, 3*p_f_pu);
 //  FWHM ~ normal(1, 0.05);
   FWHM ~ normal(p_FWHM, p_std_FWHM);
@@ -69,7 +69,7 @@ model {
     A_exp ~ normal(10, 10);
   }
   if (prior == 0) {
-    vector[N_ext] spectrum = (1-f_pu)*Re187(extended_x, m_nu, Q);
+    vector[N_ext] spectrum = (1-f_pu)*Re187_gal(extended_x, m_nu, Q, 0, 0);
     spectrum += f_pu * Re187_pileup(extended_x, Q);
     spectrum = (N_ev-N_bkg*N_ext)*spectrum + N_bkg;
     vector[N_window] response = gauss_plus_single_exp(window_x, 0, sigma, lambda*1e-3, A_exp*1e-2);
@@ -84,7 +84,7 @@ generated quantities {
   vector[N_bins] log_lik;
   {
 
-    vector[N_ext] spectrum = (1-f_pu)*Re187(extended_x, m_nu, Q);
+    vector[N_ext] spectrum = (1-f_pu)*Re187_gal(extended_x, m_nu, Q, 0, 0);
     spectrum += f_pu * Re187_pileup(extended_x, Q);
     spectrum = (N_ev-N_bkg*N_ext)*spectrum + N_bkg;
     vector[N_window] response = gauss_plus_single_exp(window_x, 0, sigma, lambda*1e-3, A_exp*1e-2);

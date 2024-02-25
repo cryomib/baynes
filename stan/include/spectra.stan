@@ -91,7 +91,7 @@ vector Re187(vector E, real m_nu, real Q){
     vector[N] y = rep_vector(0, N);
 
     real bm1 = 19.5,  b1 = -6.8e-6,  b2 = 3.05e-9;
-    real fd1 = 3.01258188e02, fd2 = -4.98343890e-01, fd3 = 5.69632611e-04;
+    real fd1 = 3.01253255e2, fd2 = -4.98343890e-1, fd3 = 8.69015327e-4, fd4 = -3.64408684e-4;
     real me = 510998.95;
 
     real pb;
@@ -104,7 +104,8 @@ vector Re187(vector E, real m_nu, real Q){
             FD = exp(
                 log(fd1) +
                 fd2 * log(E[i]) +
-                fd3 * log(E[i])^2
+                fd3 * log(E[i])^2 + 
+                fd4 * log(E[i])^3
             );
             exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i]^2;
             y[i] = y[i] + FD * exchange * pb * (E[i] + me) * (Q - E[i]) * sqrt(
@@ -113,6 +114,84 @@ vector Re187(vector E, real m_nu, real Q){
         }
     }
 
+    return y/sum(y);
+}
+
+vector Re187(vector E, real m_nu, real Q, vector exc_pars){
+    int N = num_elements(E);
+    vector[N] y = rep_vector(0, N);
+
+    real bm1 = 19.5,  b1 = -6.8e-6,  b2 = 3.05e-9;
+    real fd1 = 3.01253255e2, fd2 = -4.98343890e-1, fd3 = 8.69015327e-4, fd4 = -3.64408684e-4;
+    real me = 510998.95;
+
+    real pb;
+    real FD;
+    real exchange;
+
+    for (i in 1:N) {
+        if (Q - E[i] >= m_nu) {
+            pb = sqrt(E[i]^2 + 2 * E[i] * me);
+            FD = exp(
+                log(fd1) +
+                fd2 * log(E[i]) +
+                fd3 * log(E[i])^2 + 
+                fd4 * log(E[i])^3
+            );
+            exchange = bm1*(1+exc_pars[1]) / E[i] + 1 + b1*(1+exc_pars[2]) * E[i] + b2*(1+exc_pars[3
+            ]) * E[i]^2;
+            y[i] = y[i] + FD * exchange * pb * (E[i] + me) * (Q - E[i]) * sqrt(
+                (Q - E[i])^ 2 - m_nu^2
+            );
+        }
+    }
+
+    return y/sum(y);
+}
+
+
+
+vector Re187_mu_sq(vector E, real m_nu_sq, real Q){
+    int N = num_elements(E);
+    vector[N] y = rep_vector(0, N);
+
+    real bm1 = 19.5,  b1 = -6.8e-6,  b2 = 3.05e-9;
+    real fd1 = 3.01253255e2, fd2 = -4.98343890e-1, fd3 = 8.69015327e-4, fd4 = -3.64408684e-4;
+    real me = 510998.95;
+
+    real pb;
+    real FD;
+    real exchange;
+
+    for (i in 1:N) {
+        if (Q - E[i] >= sqrt(m_nu_sq)) {
+            pb = sqrt(E[i]^2 + 2 * E[i] * me);
+            FD = exp(
+                log(fd1) +
+                fd2 * log(E[i]) +
+                fd3 * log(E[i])^2 + 
+                fd4 * log(E[i])^3
+            );
+            exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i]^2;
+            y[i] = y[i] + FD * exchange * pb * (E[i] + me) * (Q - E[i]) * sqrt(
+                (Q - E[i])^ 2 - m_nu_sq
+            );
+        }
+    }
+
+    return y/sum(y);
+}
+
+
+
+vector Re187_gal(vector E, real m_nu, real Q, real par1, real par2){
+    int N = num_elements(E);
+    vector[N] y = rep_vector(0, N);
+    for (i in 1:N) {
+        if (Q - E[i] >= m_nu) {
+            y[i]+=(Q-E[i])*sqrt((Q-E[i])^2-m_nu^2)*(1.0+par1*E[i]+par2*E[i]^2);
+        }
+    }
     return y;
 }
 
@@ -122,7 +201,7 @@ vector Re187_bare(vector E){
     vector[N] y = rep_vector(0, N);
 
     real bm1 = 19.5,  b1 = -6.8e-6,  b2 = 3.05e-9;
-    real fd1 = 3.01258188e02, fd2 = -4.98343890e-01, fd3 = 5.69632611e-04;
+    real fd1 = 3.01253255e2, fd2 = -4.98343890e-1, fd3 = 8.69015327e-4, fd4 = -3.64408684e-4;
     real me = 510998.95;
 
     real pb;
@@ -134,13 +213,34 @@ vector Re187_bare(vector E){
         FD = exp(
             log(fd1) +
             fd2 * log(E[i]) +
-            fd3 * log(E[i])^2
+            fd3 * log(E[i])^2 + 
+            fd4 * log(E[i])^3
+
         );
         exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i]^2;
         y[i] = y[i] + FD * exchange * pb * (E[i] + me);
     }
 
     return y;
+}
+
+
+// normalized pileup spectrum from simple (Q-E)^2 dependence
+vector Re187_pileup(vector E, real Qval){
+    int N = num_elements(E);
+    vector[N] y = rep_vector(0, N); 
+    for (i in 1:N){
+        real eq= Qval-E[i];
+        real e2q = 2*Qval-E[i];
+        real term1 = ((e2q) * max([0., eq])^4) / 2;
+        real term2 = ((e2q)^2 * max([0., eq])^3) / 3;
+        real term5 = (max([0., eq])^5) / 5;
+        real term3 = ((e2q)^2 * max([0., eq, min([Qval, e2q])])^3) / 3;
+        real term4 = ((-e2q) * max([0., eq, min([Qval, e2q])])^4) / 2;
+        real term6 = (max([0., eq, min([Qval, e2q])])^5) / 5;
+        y[i] = (term1 - term2 + term3 + term4 - term5 + term6);
+    }
+    return y*9*(E[2]-E[1])/Qval^6;
 }
 
 
@@ -154,15 +254,54 @@ vector gauss_exp_tail(vector E, real E0, real sigma, real lambda){
     return y;
 }
 
-vector gauss_plus_double_exp(vector E, real E0, real sigma, vector lambda, vector A_exp){
+vector gauss_plus_single_exp(vector E, real E0, real sigma, real lambda, real A_exp){
     int N = num_elements(E);
+    vector[N] y = rep_vector(0, N);
+    real sl = sigma*lambda;
+    for (i in 1:N){
+        real x = (E[i]-E0)/sigma;
+        y[i] = A_exp * lambda/2 * exp((E[i]-E0)*lambda+sl^2 / 2)*erfc((x+sl)/sqrt(2));
+        y[i] += (1-A_exp)*exp(-x^2 /2)/(sigma*sqrt(2*pi()));
+    }
+    return y;
+}
+
+vector gauss_plus_single_exp(vector E, real E0, vector sigma, real lambda, real A_exp){
+    int N = num_elements(E);
+    vector[N] y = rep_vector(0, N);
+    vector[N] sl = sigma*lambda;
+    for (i in 1:N){
+        real x = (E[i]-E0)/sigma[i];
+        y[i] = A_exp * lambda/2 * exp((E[i]-E0)*lambda+sl[i]^2 / 2)*erfc((x+sl[i])/sqrt(2));
+        y[i] += (1-A_exp)*exp(-x^2 /2)/(sigma[i]*sqrt(2*pi()));
+    }
+    return y;
+}
+
+vector gauss_plus_multi_exp(vector E, real E0, real sigma, vector lambda, vector A_exp){
+    int N = num_elements(E);
+    int N_exp = num_elements(lambda);
     vector[N] y = rep_vector(0, N);
     vector[2] sl = sigma*lambda;
     for (i in 1:N){
         real x = (E[i]-E0)/sigma;
-        y[i] = A_exp[1] * lambda[1]/2 * exp((E[i]-E0)*lambda[1]+sl[1]^2 / 2)*erfc((x+sl[1])/sqrt(2));
-        y[i] += A_exp[2] * lambda[2]/2 * exp((E[i]-E0)*lambda[2]+sl[2]^2 / 2)*erfc((x+sl[2])/sqrt(2));
-        y[i] += (1-A_exp[1]-A_exp[2])*exp(-x^2 /2)/(sigma*sqrt(2*pi()));
+        for (k in 1:N_exp){
+        y[i] = A_exp[k] * lambda[k]/2 * exp((E[i]-E0)*lambda[k]+sl[k]^2 / 2)*erfc((x+sl[k])/sqrt(2));}
+        y[i] += (1-sum(A_exp))*exp(-x^2 /2)/(sigma*sqrt(2*pi()));
+    }
+    return y;
+}
+
+vector gauss_plus_double_exp(vector E, real E0, real sigma, real l1, real l2, real A1, real A2){
+    int N = num_elements(E);
+    vector[N] y = rep_vector(0, N);
+    real sl1 = sigma*l1;
+    real sl2 = sigma*l2;
+    for (i in 1:N){
+        real x = (E[i]-E0)/sigma;
+        y[i] = A1 * l1/2 * exp((E[i]-E0)*l1+sl1^2 / 2)*erfc((x+sl1)/sqrt(2));
+        y[i] += A2 * l2/2 * exp((E[i]-E0)*l2+sl2^2 / 2)*erfc((x+sl2)/sqrt(2));
+        y[i] += (1-A1-A2)*exp(-x^2 /2)/(sigma*sqrt(2*pi()));
     }
     return y;
 }

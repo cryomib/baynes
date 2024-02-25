@@ -149,7 +149,7 @@ def sensitivity_sweep(
     data_sweep,
     parameters,
     n_processes="max",
-    sampler_kwargs={"chains": 1, "show_progress": False},
+    sampler_kwargs={"chains": 1, "show_progress": False}, filename=None
 ):
     keys, values = zip(*data_sweep.items())
     permutations = [dict(zip(keys, v)) for v in it.product(*values)]
@@ -167,7 +167,7 @@ def sensitivity_sweep(
             df[key] = data[key]
         return df
 
-    return pd.concat(multithreaded_run(sample, all_data, n_processes=n_processes))
+    return pd.concat(multithreaded_run(sample, all_data, n_processes=n_processes, filename=filename))
 
 
 def save_analysis(dir_path, data=None, prior=None, posterior=None):

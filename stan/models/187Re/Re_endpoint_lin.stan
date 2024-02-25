@@ -28,13 +28,15 @@ transformed data {
   vector[N_bins] centers_x = head(x, N_bins) + dx/2;
   vector[N_window] window_x = dx * get_centered_window(N_window);
   vector[N_ext] extended_x = extend_vector(x, dx, N_window); 
+  real xmin = extended_x[1];
+  real xmax = extended_x[N_ext];
 }
 
 parameters {
   real<lower=0, upper=1> m_red;
   real z;
   real xz;
-  real<lower=0, upper=100> N_bkg;
+  vector<lower=0>[2] y_bkg;
   real<lower=0, upper=1> f_pu;
   real<lower=0, upper=100> lambda;
   real<lower=0, upper=100> A_exp;
@@ -47,8 +49,10 @@ transformed parameters {
   real<lower=0, upper=m_max> m_nu = m_red * m_max;
   real <lower=0> A = 0.1 * xz + 1;
   real sigma = FWHM / (2 * sqrt(2 * log(2)));
+  real m = (y_bkg[2]-y_bkg[1])/(xmax-xmin);
   //vector[N_ext] sigma = FWHM*sqrt(87.1+15.6*extended_x*1e-3+0.65*(extended_x*1e-3)^2);
   //vector[3] exc_pars = 0.005*exc;
+  real norm_bkg = (y_bkg[1]+y_bkg[2])*N_ext/2; 
 }
 
 model {
@@ -56,7 +60,7 @@ model {
   m_red ~ beta(1, 1);
   z ~ normal(0, p_std_Q);
   xz~std_normal();
-  N_bkg ~ normal(0.25*dx, 0.5);
+  y_bkg ~ normal(0.25*dx, 0.5*dx);
   f_pu ~ normal(p_f_pu, 3*p_f_pu);
 //  FWHM ~ normal(1, 0.05);
   FWHM ~ normal(p_FWHM, p_std_FWHM);
@@ -71,7 +75,7 @@ model {
   if (prior == 0) {
     vector[N_ext] spectrum = (1-f_pu)*Re187(extended_x, m_nu, Q);
     spectrum += f_pu * Re187_pileup(extended_x, Q);
-    spectrum = (N_ev-N_bkg*N_ext)*spectrum + N_bkg;
+    spectrum = (N_ev-norm_bkg)*spectrum + (y_bkg[1] + m *(extended_x - xmin));
     vector[N_window] response = gauss_plus_single_exp(window_x, 0, sigma, lambda*1e-3, A_exp*1e-2);
     vector[N_bins] convolved = convolve_and_bin(spectrum, response);
     counts ~ poisson(convolved*N_ev*A);
@@ -86,7 +90,7 @@ generated quantities {
 
     vector[N_ext] spectrum = (1-f_pu)*Re187(extended_x, m_nu, Q);
     spectrum += f_pu * Re187_pileup(extended_x, Q);
-    spectrum = (N_ev-N_bkg*N_ext)*spectrum + N_bkg;
+    spectrum = (N_ev-norm_bkg)*spectrum + (y_bkg[1] + m *(extended_x - xmin));
     vector[N_window] response = gauss_plus_single_exp(window_x, 0, sigma, lambda*1e-3, A_exp*1e-2);
     vector[N_bins] convolved = convolve_and_bin(spectrum, response);
     counts_rep = poisson_rng(convolved*N_ev*A);   
