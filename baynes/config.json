@@ -8,5 +8,4 @@
     "stanc_options": {
       "include-paths": "~/baynes/stan/include"
     }
-  }
 }

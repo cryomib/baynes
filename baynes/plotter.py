@@ -98,6 +98,15 @@ class MatplotlibHelper:
         """
         return self.figures[self.current_title]
 
+    def gca(self):
+        """
+        Get the current axes.
+
+        Returns:
+            matplotlib.axes.Axes: Current axes object.
+        """
+        return self.get_current_figure().axes
+
     def generate_new_title(self, plot_type):
         """
         Generate a new title for a figure based on the plot type.
@@ -419,8 +428,13 @@ class FitPlotter(MatplotlibHelper):
                 os.makedirs(save_dir, exist_ok=True)
             if not data_file.endswith(".zip"):
                 data_file += ".zip"
+            save_dir = os.path.dirname(data_file)
+            if save_dir:
+                os.makedirs(save_dir, exist_ok=True)
+
         else:
             data_file = f"data_{time.strftime('%m_%d_%H_%M_%S')}.zip"
+        # os.makedirs(os.path.join("save_fit", data_file))
         dirpath = tempfile.mkdtemp()
         self.save_fit_csvs(save_dir=dirpath, fit_titles=fit_titles)
         zip_folder(dirpath, data_file)
@@ -727,7 +741,7 @@ class FitPlotter(MatplotlibHelper):
         """
         ax, ax1 = figure.subplots(2, 1, height_ratios=[2.5, 1], sharex=True)
         draws = (
-            self.get_fit(fit_name).draws_pd(rep_key, inc_warmup=False).to_numpy()[:, 3:]
+            self.get_fit(fit_name).draws_pd(rep_key, inc_warmup=False).to_numpy()
         )
         events = np.array(data[data_key])
         if n_bins is not None:
