@@ -18,7 +18,8 @@ data {
   real p_bkg_alpha, p_bkg_beta;
   int<lower=0, upper=1> prior;
   int<lower=0, upper=1> exp_model;
-  real p_lambda;
+  //real p_lambda;
+  int<lower=0, upper=1> mod;
   real p_A_exp;
 
 }
@@ -74,7 +75,14 @@ model {
     A_exp ~ normal(p_A_exp, 10);
   }
   if (prior == 0) {
-    vector[N_ext] spectrum = Re187(extended_x, m_nu, Q);
+        vector[N_ext] spectrum;
+    if (mod == 0) {
+      spectrum = Re187(extended_x, m_nu, Q);
+      } 
+    else {
+      spectrum = Re187_gal(extended_x, m_nu, Q, 0, 0);
+    }
+   # vector[N_ext] spectrum = Re187(extended_x, m_nu, Q);
     vector[N_bins] pu = Re187_pileup(centers_x, Q);
     vector[N_window] response = gauss_plus_single_exp(window_x, 0, sigma, lambda*1e-3, A_exp*1e-2);
     vector[N_bins] convolved = convolve_and_bin(spectrum, response);
@@ -87,7 +95,13 @@ generated quantities {
   array[N_bins] int counts_rep;
   vector[N_bins] log_lik;
   {
-    vector[N_ext] spectrum = Re187(extended_x, m_nu, Q);
+    vector[N_ext] spectrum;
+    if (mod == 0) {
+      spectrum = Re187(extended_x, m_nu, Q);
+      } 
+    else {
+      spectrum = Re187_gal(extended_x, m_nu, Q, 0, 0);
+    }
     vector[N_bins] pu = Re187_pileup(centers_x, Q);
     vector[N_window] response = gauss_plus_single_exp(window_x, 0, sigma, lambda*1e-3, A_exp*1e-2);
     vector[N_bins] convolved = convolve_and_bin(spectrum, response);
