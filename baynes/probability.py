@@ -98,9 +98,6 @@ def re_spectrum(E, m_nu, Q=2465, bm1=19.5, b1=-6.8e-6, b2=3.05e-9):
     N = len(E)
     y = np.zeros(N)
 
-    bm1 = 19.5
-    b1 = -6.8e-6
-    b2 = 3.05e-9
     fd1 = 3.01253255e2
     fd2 = -4.98343890e-1
     fd3 = 8.69015327e-4
@@ -109,16 +106,16 @@ def re_spectrum(E, m_nu, Q=2465, bm1=19.5, b1=-6.8e-6, b2=3.05e-9):
 
     for i in range(N):
         if Q - E[i] >= m_nu:
-            pb = np.sqrt(E[i]**2 + 2 * E[i] * me)
+            pb = np.sqrt(E[i] ** 2 + 2 * E[i] * me)
             FD = np.exp(
-                np.log(fd1) +
-                fd2 * np.log(E[i]) +
-                fd3 * np.log(E[i])**2 +
-                fd4 * np.log(E[i])**3
+                np.log(fd1)
+                + fd2 * np.log(E[i])
+                + fd3 * np.log(E[i]) ** 2
+                + fd4 * np.log(E[i]) ** 3
             )
-            exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i]**2
+            exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i] ** 2
             y[i] = y[i] + FD * exchange * pb * (E[i] + me) * (Q - E[i]) * np.sqrt(
-                (Q - E[i])**2 - m_nu**2
+                (Q - E[i]) ** 2 - m_nu**2
             )
 
     return y / np.sum(y)

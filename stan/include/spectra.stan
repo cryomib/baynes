@@ -104,7 +104,7 @@ vector Re187(vector E, real m_nu, real Q){
             FD = exp(
                 log(fd1) +
                 fd2 * log(E[i]) +
-                fd3 * log(E[i])^2 + 
+                fd3 * log(E[i])^2 +
                 fd4 * log(E[i])^3
             );
             exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i]^2;
@@ -135,7 +135,7 @@ vector Re187(vector E, real m_nu, real Q, vector exc_pars){
             FD = exp(
                 log(fd1) +
                 fd2 * log(E[i]) +
-                fd3 * log(E[i])^2 + 
+                fd3 * log(E[i])^2 +
                 fd4 * log(E[i])^3
             );
             exchange = bm1*(1+exc_pars[1]) / E[i] + 1 + b1*(1+exc_pars[2]) * E[i] + b2*(1+exc_pars[3
@@ -169,7 +169,7 @@ vector Re187_mu_sq(vector E, real m_nu_sq, real Q){
             FD = exp(
                 log(fd1) +
                 fd2 * log(E[i]) +
-                fd3 * log(E[i])^2 + 
+                fd3 * log(E[i])^2 +
                 fd4 * log(E[i])^3
             );
             exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i]^2;
@@ -212,9 +212,9 @@ vector Re187_bare(vector E){
         pb = sqrt(E[i]^2 + 2 * E[i] * me);
         FD = exp(
             log(fd1) +
-            fd2 * log(E[i]) +
-            fd3 * log(E[i])^2 + 
-            fd4 * log(E[i])^3
+            fd2 * log(E[i]/1000) +
+            fd3 * log(E[i]/1000)^2 +
+            fd4 * log(E[i]/1000)^3
 
         );
         exchange = bm1 / E[i] + 1 + b1 * E[i] + b2 * E[i]^2;
@@ -228,7 +228,7 @@ vector Re187_bare(vector E){
 // normalized pileup spectrum from simple (Q-E)^2 dependence
 vector Re187_pileup(vector E, real Qval){
     int N = num_elements(E);
-    vector[N] y = rep_vector(0, N); 
+    vector[N] y = rep_vector(0, N);
     for (i in 1:N){
         real eq= Qval-E[i];
         real e2q = 2*Qval-E[i];
@@ -243,6 +243,75 @@ vector Re187_pileup(vector E, real Qval){
     return y*9*(E[2]-E[1])/Qval^6;
 }
 
+/*
+// normalized pileup spectrum from simple (Q-E)^2 dependence
+vector Re187_pileup(vector E, real Qval){
+int N = num_elements(En);
+vector[N] result;
+
+// Precompute common terms
+real Q_sq = square(Q);
+real Q_cube = Q_sq * Q;
+real Q_quad = Q_sq * Q_sq;
+real two_Q = 2 * Q;
+real common_factor = 9.0 / (Q_quad * Q_sq);
+
+for (i in 1:N) {
+  real e = En[i];
+
+  if (e < two_Q && e >= Q) {
+    real diff = e - two_Q;
+    result[i] = -(1.0/30.0) * (diff^4);
+  } else if (e > 0 && e < Q) {
+    real e_sq = square(e);
+    real e_cube = e_sq * e;
+    real e_quad = e_sq * e_sq;
+
+    result[i] = (1.0/30.0) * e * (e_quad - 10*e_cube*Q + 40*e_sq*Q_sq - 60*e*Q_cube + 30*Q_quad);
+  }
+}
+return result * common_factor;
+}*/
+
+// normalized pileup spectrum from simple (Q-E)^2 dependence, considering minimum cutoff energy Emin.
+vector Re187_pileup(vector En, real Q, real Emin) {
+  int N = num_elements(En);
+  vector[N] result;
+  real common_factor = 9.0 / pow(Emin-Q, 6);
+  real two_Q = 2 * Q;
+  real Emin_plus_Q = Emin + Q;
+  real two_Emin = 2 * Emin;
+  real Emin_squared = pow(Emin, 2);
+  real Emin_cubed = pow(Emin, 3);
+  real Emin_fourth = pow(Emin, 4);
+  real Q_squared = pow(Q, 2);
+  real Q_cubed = pow(Q, 3);
+  real Q_fourth = pow(Q, 4);
+
+  for (i in 1:N) {
+    if (En[i] < two_Q && Emin_plus_Q <= En[i]) {
+      result[i] = -(1.0/30.0) * pow(En[i] - two_Q, 5) * common_factor;
+    } else if (two_Emin < En[i] && Emin_plus_Q > En[i]) {
+      real En_i = En[i];
+      real En_squared = pow(En_i, 2);
+      real En_cubed = En_i * En_squared;
+      real En_fourth = En_squared * En_squared;
+
+      real term1 = -(1.0/30.0) * (two_Emin - En_i);
+      real term2 = (6*Emin_fourth - 12*Emin_cubed*En_i + 4*Emin_squared*En_squared +
+                    2*Emin*En_cubed + En_fourth);
+      real term3 = -10*En_i*(-2*Emin_squared + 2*Emin*En_i + En_squared)*Q;
+      real term4 = -20*(Emin - 2*En_i)*(Emin + En_i)*Q_squared;
+      real term5 = -60*En_i*Q_cubed;
+      real term6 = 30*Q_fourth;
+
+      result[i] = term1 * (term2 + term3 + term4 + term5 + term6) * common_factor;
+    } else {
+      result[i] = 0;
+    }
+  }
+  return result;
+}
 
 vector gauss_exp_tail(vector E, real E0, real sigma, real lambda){
     int N = num_elements(E);
